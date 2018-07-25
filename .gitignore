@@ -9,3 +9,9 @@ SimOutput.log
 *.lock
 *.sublime*
 *.asv
+
+\.DS_Store
+
+src/CPPMoMinterface/content/CPPMoMsolver/\.build/
+
+*.mom
