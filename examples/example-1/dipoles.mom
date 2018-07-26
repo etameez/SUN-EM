@@ -1,0 +1,65 @@
+MOM MATLAB OUTPUT FILE
+Created On: 25-7-2018, 21:19:18
+
+CONST START
+ProjectPath                   		C:\Users\Tameez\Documents\git\SUN-EM\examples\example-1
+OutputDirName                 		dipoles
+debug                         		false
+is_octave                     		false
+MajorVersion                  		1
+MinorVersion                  		24
+Year                          		2018
+Month                         		6
+Day                           		20
+ExecPath                      		C:\Users\Tameez\Documents\git\SUN-EM\bin\
+ProjectName                   		example-1
+runMoMsolver                  		true
+FEKOmatfilename               		strip_dipole.mat
+FEKOstrfilename               		strip_dipole.str
+FEKOrhsfilename               		strip_dipole.rhs
+FEKOoutfilename               		strip_dipole.out
+FEKOefefilename               		strip_dipole.efe
+FEKOffefilename               		strip_dipole.ffe
+numMoMbasis                   		27
+runCBFMsolver                 		false
+runJacobisolver               		false
+runIFBMoMsolver               		false
+runDGFMsolver                 		false
+solStart                      		1
+solEnd                        		1
+fastBuildMoMblock             		true
+useEDM                        		false
+parse_FEKO_out_file           		false
+no_mutual_coupling_array      		false
+domain_decomposition          		false
+useMBFreduction               		false
+MBFthreshold                  		1000
+JACKITcheckConvergence        		false
+SUNEMcbfmstrfilename          		
+SUNEMifbmomstrfilename        		
+SUNEMmomstrfilename           		
+SUNEMdgfmstrfilename          		
+SUNEMjackstrfilename          		
+useACA                        		false
+ACAalg                        		3
+store_to_fcd_file             		false
+useCSCBFM                     		false
+isPhasedArray                 		false
+runJACKITfromDGFM             		false
+runNGFenDGFMsolver            		false
+storeZact                     		false
+RAD2DEG                       		57.2958
+DEG2RAD                       		0.017453
+EPS                           		1e-05
+EPS_0                         		8.854e-12
+MU_0                          		1.2566e-06
+ETA_0                         		376.7343
+C0                            		299795637.6932
+QUAD_PTS                      		6
+SING                          		true
+FEKO_efe_file_format          		4
+freqStart                     		299800000
+freqEnd                       		0
+freqData                      		299792000
+numFreq                       		1
+CONST END

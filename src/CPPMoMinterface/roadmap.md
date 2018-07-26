@@ -2,7 +2,8 @@
 
 ## MoM
 
-    - [ ] Interface C++ with Matlab
-    - [ ] MoM Solution
+- [ ] Output File For C++
+- [ ] MoM Solution
+- [ ] Interface C++ with Matlab
 
 ## HPC
