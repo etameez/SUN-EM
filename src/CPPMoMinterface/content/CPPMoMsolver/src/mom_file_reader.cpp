@@ -97,12 +97,17 @@ MoMFileReader::MoMFileReader(std::string file_path)
         // Lets read the node header
         getline(file, str);
 
-               // Now lets read the nodes
+        // Now lets read the nodes
         for(int i = 0; i < num_fields; i++)
         {
           getline(file, str);
-          // TODO READ TO STRUCT
           line_vector = this->numberLineReader(str, 3);
+
+          // Lets add the values to the Node class and push it to node_vector
+          // Also have to change the string to float
+          this->node_vector.push_back(Node(std::stof(line_vector[0]),
+                                           std::stof(line_vector[1]),
+                                           std::stof(line_vector[2])));
         }
       }
       else
@@ -271,6 +276,12 @@ MoMFileReader::MoMFileReader(std::string file_path)
   {
     std::cout << "ERROR: THE FILE CANNOT BE OPENED" << std::endl;
   }
+}
+
+std::map<std::string, std::string> MoMFileReader::getConstMap()
+{
+  // Return the map of all the Const data
+  return this->const_map;
 }
 
 std::vector<std::string> MoMFileReader::constLineReader(std::string line)
