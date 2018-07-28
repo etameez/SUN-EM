@@ -211,8 +211,37 @@ MoMFileReader::MoMFileReader(std::string file_path)
         {
           getline(file, str);
 
-          //TODO ADD STRUCT
           line_vector = this->numberLineReader(str, 16);
+
+          // Lets read the data into class Edge
+          // First, lets make the Nodes for the centre and the two rho's
+          // Don't forget to convert from string
+          Node centre(std::stof(line_vector[2]),
+                      std::stof(line_vector[3]),
+                      std::stof(line_vector[4]));
+
+          Node rho_c_minus(std::stof(line_vector[10]),
+                           std::stof(line_vector[11]),
+                           std::stof(line_vector[12]));
+          
+          Node rho_c_plus(std::stof(line_vector[13]),
+                           std::stof(line_vector[14]),
+                           std::stof(line_vector[15]));
+
+          // Now lets add the data into an Edge
+          Edge edge(std::stoi(line_vector[0]), // vertex_1
+                    std::stoi(line_vector[1]), // vertex_2
+                    centre,                    // center
+                    std::stof(line_vector[5]), // length
+                    std::stoi(line_vector[6]), // minus_triangle_index
+                    std::stoi(line_vector[7]), // plus_triangle_index
+                    std::stoi(line_vector[8]), // minus_free_vertex
+                    std::stoi(line_vector[9]), // plus_free_vertex
+                    rho_c_minus,               // rho_c_minus
+                    rho_c_plus);               // rhos_c_plus
+
+          // Finall lets push the Edge to a vector(edges)
+          this->edges.push_back(edge);
         }
       }
       else
@@ -304,6 +333,11 @@ std::map<std::string, std::string> MoMFileReader::getConstMap()
 std::vector<Triangle> MoMFileReader::getTriangles()
 {
   return this->triangles;
+}
+
+std::vector<Edge> MoMFileReader::getEdges()
+{
+  return this->edges;
 }
 
 std::vector<std::string> MoMFileReader::constLineReader(std::string line)

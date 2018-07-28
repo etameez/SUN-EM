@@ -10,6 +10,7 @@
 #include <vector>
 #include "node.h"
 #include "triangle.h"
+#include "edge.h"
 
 class MoMFileReader
 {
@@ -18,11 +19,13 @@ class MoMFileReader
 
     	std::map<std::string, std::string> getConstMap();
     	std::vector<Triangle> getTriangles();
+    	std::vector<Edge> getEdges();
   
  	protected:
     	std::map<std::string, std::string> const_map;
     	std::vector<Node> node_vector;
     	std::vector<Triangle> triangles;
+    	std::vector<Edge> edges;
 
     	std::vector<std::string> constLineReader(std::string line);
     	std::vector<std::string> numberLineReader(std::string line, int num_values);
