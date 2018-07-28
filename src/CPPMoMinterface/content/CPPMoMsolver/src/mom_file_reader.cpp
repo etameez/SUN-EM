@@ -297,9 +297,7 @@ MoMFileReader::MoMFileReader(std::string file_path)
       for(int i = 0; i < num_fields; i++)
       {
         getline(file, str);
-
-        //TODO ADD STRUCT
-        std::cout << str << std::endl;
+        this->vrhs.push_back(std::stof(str));
       }
     }
     else
@@ -338,6 +336,11 @@ std::vector<Triangle> MoMFileReader::getTriangles()
 std::vector<Edge> MoMFileReader::getEdges()
 {
   return this->edges;
+}
+
+std::vector<float> MoMFileReader::getVrhs()
+{
+  return this->vrhs;
 }
 
 std::vector<std::string> MoMFileReader::constLineReader(std::string line)
@@ -404,13 +407,6 @@ std::vector<std::string> MoMFileReader::numberLineReader(std::string line, int n
   // Lets add the last value
   value_vector.push_back(line);
 
-  // TODO DELETE THIS
-  for(int i =0; i < value_vector.size(); i++)
-  {
-    std::cout << value_vector[i] << std::endl;
-  }
-  std::cout << std::endl;
-
-  // Lets return the values
+    // Lets return the values
   return value_vector;
 }
