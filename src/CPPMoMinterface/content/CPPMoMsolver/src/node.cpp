@@ -13,6 +13,11 @@
  *
  */
 
+Node::Node()
+{
+	
+}
+
 Node::Node(float x_coord, float y_coord, float z_coord)
 {
 	this->x = x_coord;
@@ -33,4 +38,13 @@ float Node::getYCoord()
 float Node::getZCoord()
 {
 	return this->z;
+}
+
+float Node::getDistanceTo(Node node)
+{
+	// Lets get the distance
+	// Distance = sqrt((x2 - x1)^2 + (y2 - y1)^2 + (z2 - z1)^2)
+	return std::sqrt(std::pow((node.getXCoord() - this->x), 2) + 
+		 			 std::pow((node.getYCoord() - this->y), 2) + 
+		 			 std::pow((node.getZCoord() - this->z), 2));		
 }

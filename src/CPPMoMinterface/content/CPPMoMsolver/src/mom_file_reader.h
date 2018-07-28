@@ -9,6 +9,7 @@
 #include <cstring>
 #include <vector>
 #include "node.h"
+#include "triangle.h"
 
 class MoMFileReader
 {
@@ -16,10 +17,12 @@ class MoMFileReader
     	MoMFileReader(std::string file_path);
 
     	std::map<std::string, std::string> getConstMap();
+    	std::vector<Triangle> getTriangles();
   
  	protected:
     	std::map<std::string, std::string> const_map;
     	std::vector<Node> node_vector;
+    	std::vector<Triangle> triangles;
 
     	std::vector<std::string> constLineReader(std::string line);
     	std::vector<std::string> numberLineReader(std::string line, int num_values);

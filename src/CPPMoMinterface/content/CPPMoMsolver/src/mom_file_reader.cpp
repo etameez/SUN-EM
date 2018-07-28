@@ -144,14 +144,31 @@ MoMFileReader::MoMFileReader(std::string file_path)
         getline(file, str);
 
         // Now lets read the triangle data
-        // The data is of the form VERTEX-VERTEX-VERTEX-CENTRE-AREA
+        // The data is of the form VERTEX-VERTEX-VERTEX-CENTREX-CENTREY-CENTREZ-AREA
         // The vertices refer to the index of the nodes
         for(int i = 0; i < num_fields; i++)
         {
           getline(file, str);
 
-          // TODO READ TO STRUCT
-          line_vector = this->numberLineReader(str, 5);
+          line_vector = this->numberLineReader(str, 7);
+
+          // Lets read to the triangle class
+          // Lets first make a node to store the centre
+          // Dont forget to convert from string
+          Node centre_node(std::stof(line_vector[3]),
+                           std::stof(line_vector[4]),
+                           std::stof(line_vector[5]));
+
+          // Now lets read to a triangle
+          Triangle triangle(std::stoi(line_vector[0]),
+                            std::stoi(line_vector[1]),
+                            std::stoi(line_vector[2]),
+                            centre_node,
+                            std::stof(line_vector[6]));
+
+          // Finally, lets push to vector
+          this->triangles.push_back(triangle);
+
         }
       }
       else
@@ -282,6 +299,11 @@ std::map<std::string, std::string> MoMFileReader::getConstMap()
 {
   // Return the map of all the Const data
   return this->const_map;
+}
+
+std::vector<Triangle> MoMFileReader::getTriangles()
+{
+  return this->triangles;
 }
 
 std::vector<std::string> MoMFileReader::constLineReader(std::string line)
