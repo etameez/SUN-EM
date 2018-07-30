@@ -61,6 +61,11 @@ std::vector<int> Triangle::getVertices()
 	return vertices_vector;
 }
 
+std::vector<int> Triangle::getEdges()
+{
+	return this->edge_indices;
+}
+
 float Triangle::getArea()
 {
 	return this->area;

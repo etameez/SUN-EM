@@ -63,6 +63,10 @@ function [Const] = sunem_setup(Const)
     % === DGFM Solver Interface ===
     addpath([MainPath '/src/IFBinterface']);
     
+    % === TEST Interface ===
+    % TODO CHANGE
+    addpath([MainPath '/src/CPPMoMinterface/content/MatlabCppHelpers']);
+    
     % ==  Set the executables path % ==
     if (ispc)
         Const.ExecPath = sprintf('%s\\bin\\',MainPath);

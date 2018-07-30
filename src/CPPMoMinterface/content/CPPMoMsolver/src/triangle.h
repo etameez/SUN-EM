@@ -15,6 +15,7 @@ class Triangle
 		int getVertex2();
 		int getVertex3();
 		std::vector<int> getVertices();
+		std::vector<int> getEdges();
 
 		float getArea();
 		Node getCentre();

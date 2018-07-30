@@ -136,3 +136,16 @@ set(get(gca, 'YLabel'), 'String', ('|E-field| [V]'));
 % grid on;
 % Efield_scaling_factor = Efield_magnitude./FEKO_Efield_magnitude;
 % plot(1:total_efield_samples,Efield_scaling_factor);
+
+%-------------------------------------------------------------
+%TEST
+%TODO REMOVE
+writeFileForCpp(Const, Solver_setup, yVectors);
+%-------------------------------------------------------------
+
+
+
+
+
+
+

@@ -13,10 +13,14 @@
  */
 
 #include "mom_file_reader.h"
+#include "mom_solver.h"
 
 int main()
 {
-  std::string path = "/Users/tameez/Dropbox/dipoles.mom";
+  //std::string path = "/Users/tameez/Dropbox/dipoles.mom";
+  std::string path = "C:\\Users\\Tameez\\Dropbox\\dipoles.mom";
   MoMFileReader reader(path);
+  MoMSolver solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
+  solver.calculateZmnByFace(); 
   return 0;
 }
