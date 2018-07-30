@@ -18,6 +18,7 @@ class MoMFileReader
     	MoMFileReader(std::string file_path);
 
     	std::map<std::string, std::string> getConstMap();
+    	std::vector<Node> getNodes();
     	std::vector<Triangle> getTriangles();
     	std::vector<Edge> getEdges();
     	std::vector<float> getVrhs();

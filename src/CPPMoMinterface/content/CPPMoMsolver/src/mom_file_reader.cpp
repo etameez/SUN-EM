@@ -328,6 +328,11 @@ std::map<std::string, std::string> MoMFileReader::getConstMap()
   return this->const_map;
 }
 
+std::vector<Node> MoMFileReader::getNodes()
+{
+  return this->node_vector;
+}
+
 std::vector<Triangle> MoMFileReader::getTriangles()
 {
   return this->triangles;

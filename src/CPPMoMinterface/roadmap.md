@@ -4,7 +4,7 @@
 
 - [X] Output File For C++
 - [X] Read .mom file in C++
-- [ ] Store the relevant information in C++ classes
+- [X] Store the relevant information in C++ classes
 - [ ] MoM Solution using FEKO data
 - [ ] Calculate missing data
 - [ ] MoM solution using calculated data
