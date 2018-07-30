@@ -160,9 +160,11 @@ MoMFileReader::MoMFileReader(std::string file_path)
                            std::stof(line_vector[5]));
 
           // Now lets read to a triangle
-          Triangle triangle(std::stoi(line_vector[0]),
-                            std::stoi(line_vector[1]),
-                            std::stoi(line_vector[2]),
+          // Also, minus 1 from the vertex indices due to MATLAB starting from 1 and 
+          // everything else starting from 0
+          Triangle triangle(std::stoi(line_vector[0]) - 1,
+                            std::stoi(line_vector[1]) - 1,
+                            std::stoi(line_vector[2]) - 1,
                             centre_node,
                             std::stof(line_vector[6]));
 
@@ -229,18 +231,24 @@ MoMFileReader::MoMFileReader(std::string file_path)
                            std::stof(line_vector[15]));
 
           // Now lets add the data into an Edge
-          Edge edge(std::stoi(line_vector[0]), // vertex_1
-                    std::stoi(line_vector[1]), // vertex_2
-                    centre,                    // center
-                    std::stof(line_vector[5]), // length
-                    std::stoi(line_vector[6]), // minus_triangle_index
-                    std::stoi(line_vector[7]), // plus_triangle_index
-                    std::stoi(line_vector[8]), // minus_free_vertex
-                    std::stoi(line_vector[9]), // plus_free_vertex
-                    rho_c_minus,               // rho_c_minus
-                    rho_c_plus);               // rhos_c_plus
+          // Also, lets reduce all indices by 1 due to MATLAB starting from 1 and everything
+          // else starting from 0
+          Edge edge(std::stoi(line_vector[0]) - 1, // vertex_1
+                    std::stoi(line_vector[1]) - 1, // vertex_2
+                    centre,                        // center
+                    std::stof(line_vector[5]),     // length
+                    std::stoi(line_vector[6]) - 1, // minus_triangle_index
+                    std::stoi(line_vector[7]) - 1, // plus_triangle_index
+                    std::stoi(line_vector[8]) - 1, // minus_free_vertex
+                    std::stoi(line_vector[9]) - 1, // plus_free_vertex
+                    rho_c_minus,                   // rho_c_minus
+                    rho_c_plus);                   // rhos_c_plus
 
-          // Finall lets push the Edge to a vector(edges)
+          // Lets introduce an index to the edge in the plus and minus triangles
+          // This is needed for the calculation of Zmn by face.
+          this->triangles[std::stoi(line_vector[6]) - 1].setEdgeIndex(i);
+          this->triangles[std::stoi(line_vector[7]) - 1].setEdgeIndex(i);
+          // Finally lets push the Edge to a vector(edges)
           this->edges.push_back(edge);
         }
       }

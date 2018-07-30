@@ -71,6 +71,11 @@ Node Triangle::getCentre()
 	return this->centre;
 }
 
+void Triangle::setEdgeIndex(int index)
+{
+	this->edge_indices.push_back(index);
+}
+
 float Triangle::calculateArea(Node node_vertex_1, Node node_vertex_2, Node node_vertex_3)
 {
 	// Lets calculate the area
