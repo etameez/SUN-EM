@@ -208,7 +208,14 @@ function [Z] = FillZMatrixByEdge(Const,Solver_setup)
                     
                     Amn_mns = Amn_mns_source_pls + Amn_mns_source_mns;
                     Phi_mn_mns = Phi_mn_mns_source_pls + Phi_mn_mns_source_mns;
-                           
+                    
+                    %-------------
+                    % DELETE
+                    amnmn = Amn_pls;
+                    rcp = rho_c_pls(mm,:);
+                    dt = dot(Amn_pls',rho_c_pls(mm,:))/2;
+                    %-------------
+                    
                     % Assemble with eq. 17 in [RWG82]
                     Z.values(mm,nn) = 1i*omega*...
                         (dot(Amn_pls',rho_c_pls(mm,:))/2 + dot(Amn_mns',rho_c_mns(mm,:))/2) + Phi_mn_mns - Phi_mn_pls;
@@ -264,7 +271,17 @@ function [MagVecPot,ScalPot] = Potentials(elements,node_coord,ell, field_pt,sour
     % [RWG82, Eq. (32) - without sign
     MagVecPot = mu_0*ell(source_edge)/(4*pi)*...
         ( r(1,:)*Ipq_xi + r(2,:)*Ipq_eta + r(3,:)*Ipq_zeta - rii(1,:)*Ipq);
-
+    %-------------------------------------\
+    % DELETE
+    nmult = mu_0/(4*pi);
+    nl = mu_0/(4*pi)*...
+        ( r(1,:)*Ipq_xi + r(2,:)*Ipq_eta + r(3,:)*Ipq_zeta - rii(1,:)*Ipq);
+    a = r(1,:)*Ipq_xi;
+    b = r(2,:)*Ipq_eta;
+    c = r(3,:)*Ipq_zeta;
+    d = rii(1,:)*Ipq;
+    e = 1/(1i*2*pi*omega*eps_0) * Ipq;
+    %-------------------------------------
     % [RWG82, Eq. (33) - without sign
     ScalPot = ell(source_edge)/(1i*2*pi*omega*eps_0) * Ipq;
         

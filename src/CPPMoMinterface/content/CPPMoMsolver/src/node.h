@@ -25,7 +25,9 @@ class Node
         Node getScalarMultiply(float scalar);
         Node getScalarMultiply(std::complex<float> scalar);
         Node getAddComplexNode(Node node);
+        Node getSubtractComplexNode(Node node);
         std::complex<float> getDot(Node node);
+        bool getIsComplex();
 
     protected:
         float x;

@@ -86,18 +86,18 @@ void MoMSolver::calculateZmnByFace()
                 {
                     a_pq = a_and_phi[2].getScalarMultiply(this->edges[this->triangles[q].getEdges()[e]].getLength());   
                 }
-
+              
                 std::complex<float> phi = a_and_phi[3].getXComplexCoord() * this->edges[this->triangles[q].getEdges()[e]].getLength();
-                
+
                 if(this->edges[this->triangles[q].getEdges()[e]].getMinusTriangleIndex() == q)
                 {
-                    a_pq = a_pq.getScalarMultiply(-1.0);
+                    phi = phi * std::complex<float>(-1.0, 0);
                 }
                 else
                 {
-                    phi = phi * std::complex<float>(1.0, 0);
+                    a_pq = a_pq.getScalarMultiply(-1.0);
                 }
-                
+
                 for(int r = 0; r < this->triangles[p].getEdges().size(); r++)
                 {
                     Node rho_c;
@@ -113,6 +113,13 @@ void MoMSolver::calculateZmnByFace()
                         rho_c = this->edges[this->triangles[p].getEdges()[r]].getRhoCPlus();
                         phi_sign = 1;
                     }
+
+                    // std::cout << rho_c.getXCoord() << " " << rho_c.getYCoord() << " " << rho_c.getZCoord() << std::endl;
+                    // std::cout << a_pq.getXComplexCoord() << " " << a_pq.getYComplexCoord() << " " << a_pq.getZComplexCoord() <<std::endl;
+                    // std::cout << a_pq.getDot(rho_c) << std::endl;
+                    // std::cout << std::endl;
+                    // std::cout << std::endl;
+
                     
                     z_mn[this->triangles[p].getEdges()[r]][this->triangles[q].getEdges()[e]] =
                     z_mn[this->triangles[p].getEdges()[r]][this->triangles[q].getEdges()[e]] +
@@ -131,14 +138,14 @@ void MoMSolver::calculateZmnByFace()
         }
     }
 
-    for(int i = 0; i < this->edges.size(); i++)
-    {
-        for (int j = 0; j < this->edges.size(); j++)
-        {
-            std::cout << z_mn[i][j] << " ";
-        }
-        std::cout << std::endl;
-    }
+    // for(int i = 0; i < this->edges.size(); i++)
+    // {
+    //     for (int j = 0; j < this->edges.size(); j++)
+    //     {
+    //         std::cout << z_mn[i][j] << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
 }
 
 std::vector<Node> MoMSolver::calculateAAndPhi(int p, int q)
@@ -164,18 +171,43 @@ std::vector<Node> MoMSolver::calculateAAndPhi(int p, int q)
         Node a_pq_node_2 = this->nodes[this->triangles[q].getVertex2()].getScalarMultiply(i_vector[2]);
         Node a_pq_node_3 = this->nodes[this->triangles[q].getVertex3()].getScalarMultiply(i_vector[3]);
         Node a_pq_node_4 = this->nodes[this->triangles[q].getVertices()[i]].getScalarMultiply(i_vector[0]);
+        // std::cout << a_pq_node_1.getXComplexCoord() << " " << a_pq_node_1.getYComplexCoord() << " " << a_pq_node_1.getZComplexCoord() << std::endl;
+        // std::cout << a_pq_node_2.getXComplexCoord() << " " << a_pq_node_2.getYComplexCoord() << " " << a_pq_node_2.getZComplexCoord() << std::endl;
+        // std::cout << a_pq_node_3.getXComplexCoord() << " " << a_pq_node_3.getYComplexCoord() << " " << a_pq_node_3.getZComplexCoord() << std::endl;
+        // std::cout << a_pq_node_4.getXComplexCoord() << " " << a_pq_node_4.getYComplexCoord() << " " << a_pq_node_4.getZComplexCoord() << std::endl;
 
         // Now lets add the four terms together
         // Again, it is quite messy
         Node a_pq_node = a_pq_node_1.getAddComplexNode(a_pq_node_2);
+        // std::cout << a_pq_node.getXComplexCoord() << std::endl;
+        // std::cout << a_pq_node.getYComplexCoord() << std::endl;
+        // std::cout << a_pq_node.getZComplexCoord() << std::endl;
+        
         a_pq_node = a_pq_node.getAddComplexNode(a_pq_node_3);
-        a_pq_node = a_pq_node.getAddComplexNode(a_pq_node_4);
+        // std::cout << a_pq_node.getXComplexCoord() << std::endl;
+        // std::cout << a_pq_node.getYComplexCoord() << std::endl;
+        // std::cout << a_pq_node.getZComplexCoord() << std::endl;
+        
+        a_pq_node = a_pq_node.getSubtractComplexNode(a_pq_node_4);
+
+        // std::cout << a_pq_node.getXComplexCoord() << std::endl;
+        // std::cout << a_pq_node.getYComplexCoord() << std::endl;
+        // std::cout << a_pq_node.getZComplexCoord() << std::endl;
         
         // Now lets multiply the added nodes by mu / 4pi
         // Remember that the length is not multiplied yet
-        float a_pq_multiplier = std::stof(this->const_map["MU_0"]) / (4 * M_PI);                
+        //float a_pq_multiplier = std::stof(this->const_map["MU_0"]) / (4 * M_PI);                
+        float a_pq_multiplier =1.000e-07; 
         a_pq_node = a_pq_node.getScalarMultiply(a_pq_multiplier);
         a_and_phi_vector.push_back(a_pq_node);
+        //TODO DELETE
+        // std::cout << a_pq_multiplier << std::endl;
+        // std::cout << a_pq_node.getXComplexCoord() << " " << a_pq_node.getYComplexCoord() << " " << a_pq_node.getZComplexCoord() << std::endl;
+        // std::cout << a_pq_node.getXComplexCoord() << std::endl;
+        // std::cout << a_pq_node.getYComplexCoord() << std::endl;
+        // std::cout << a_pq_node.getZComplexCoord() << std::endl;
+        // std::cout << std::endl << std::endl;
+        // std::cout << a_pq_node.getIsComplex() << std::endl;
 
     }
 
@@ -230,27 +262,28 @@ std::vector<std::complex<float>> MoMSolver::calculateIpq(int p, int q)
         std::complex<float> Ipq_eta;    // RWG80 34c
         std::complex<float> Ipq_zeta;   // RWG80 34d
 
-
         // Now lets loop over the quadrature points
+        int x = 0; // TODO delete
         for(int i = 0; i < this->quadrature_weights_values.size(); i++)
         {
             // Lets first get r' as noted in equation 30 in RWG80
             // So, it is [xi * vertex_1, eta * vertex_2, zeta * vertex_3]  
-            // TODO Check if r' needs to be normalized
-            float r_prime_x = 0.5 * this->quadrature_weights_values[i][1] * this->nodes[this->triangles[q].getVertex1()].getXCoord() +
-                              0.5 * this->quadrature_weights_values[i][2] * this->nodes[this->triangles[q].getVertex2()].getXCoord() +
-                              0.5 * this->quadrature_weights_values[i][3] * this->nodes[this->triangles[q].getVertex3()].getXCoord();
+            // // TODO Check if r' needs to be normalized
+            float r_prime_x = this->quadrature_weights_values[i][1] * this->nodes[this->triangles[q].getVertex1()].getXCoord() +
+                              this->quadrature_weights_values[i][2] * this->nodes[this->triangles[q].getVertex2()].getXCoord() +
+                              this->quadrature_weights_values[i][3] * this->nodes[this->triangles[q].getVertex3()].getXCoord();
             
-            float r_prime_y = 0.5 * this->quadrature_weights_values[i][1] * this->nodes[this->triangles[q].getVertex1()].getYCoord() +
-                              0.5 * this->quadrature_weights_values[i][2] * this->nodes[this->triangles[q].getVertex2()].getYCoord() +
-                              0.5 * this->quadrature_weights_values[i][3] * this->nodes[this->triangles[q].getVertex3()].getYCoord();
+            float r_prime_y = this->quadrature_weights_values[i][1] * this->nodes[this->triangles[q].getVertex1()].getYCoord() +
+                              this->quadrature_weights_values[i][2] * this->nodes[this->triangles[q].getVertex2()].getYCoord() +
+                              this->quadrature_weights_values[i][3] * this->nodes[this->triangles[q].getVertex3()].getYCoord();
             
-            float r_prime_z = 0.5 * this->quadrature_weights_values[i][1] * this->nodes[this->triangles[q].getVertex1()].getZCoord() +
-                              0.5 * this->quadrature_weights_values[i][2] * this->nodes[this->triangles[q].getVertex2()].getZCoord() +
-                              0.5 * this->quadrature_weights_values[i][3] * this->nodes[this->triangles[q].getVertex3()].getZCoord();
+            float r_prime_z = this->quadrature_weights_values[i][1] * this->nodes[this->triangles[q].getVertex1()].getZCoord() +
+                              this->quadrature_weights_values[i][2] * this->nodes[this->triangles[q].getVertex2()].getZCoord() +
+                              this->quadrature_weights_values[i][3] * this->nodes[this->triangles[q].getVertex3()].getZCoord();
+
+            //Node r_prime_1 =  
             
             Node r_prime(r_prime_x, r_prime_y, r_prime_z);
-
 
             // Now, lets get Rp as noted in equation 27 in RWG80
             // C++ doesn't have an easy way to take the norm of a vector
@@ -265,6 +298,7 @@ std::vector<std::complex<float>> MoMSolver::calculateIpq(int p, int q)
 
             // Finally, lets calculate three  of the four I's
             Ipq = Ipq + (this->quadrature_weights_values[i][0] * greens_function);  
+            
             
             Ipq_xi = Ipq_xi + (this->quadrature_weights_values[i][0] * 
                                this->quadrature_weights_values[i][1] * 
@@ -283,7 +317,7 @@ std::vector<std::complex<float>> MoMSolver::calculateIpq(int p, int q)
         i_vector.push_back(Ipq_eta);
         i_vector.push_back(Ipq_zeta);
         // TODO: DELETE
-        //std::cout << Ipq <<"\t" << Ipq_xi <<"\t" << Ipq_eta <<"\t" << Ipq_zeta <<"\t" << std::endl;
+        //std::cout << Ipq <<" " << Ipq_xi <<" " << Ipq_eta <<" " << Ipq_zeta << std::endl;
     }
 
     return i_vector;

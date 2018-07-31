@@ -18,7 +18,7 @@
 int main()
 {
   //std::string path = "/Users/tameez/Dropbox/dipoles.mom";
-  std::string path = "C:\\Users\\Tameez\\Dropbox\\dipoles.mom";
+  std::string path = "C:\\Users\\Tameez\\Dropbox\\pec_plate.mom";
   MoMFileReader reader(path);
   MoMSolver solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
   solver.calculateZmnByFace(); 

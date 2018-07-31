@@ -93,28 +93,90 @@ float Node::getNorm()
 
 Node Node::getScalarMultiply(float scalar)
 {
-    Node return_node(scalar * this->x, scalar * this->y, scalar * this->z);
+    Node return_node;
+
+    if(this->isComplex)
+    {
+        return_node = Node(scalar * this->x_complex, scalar * this->y_complex, scalar * this->z_complex);
+    }
+    else
+    {
+        return_node = Node(scalar * this->x, scalar * this->y, scalar * this->z);
+    }
     return return_node;
 }
 
 
 Node Node::getScalarMultiply(std::complex<float> scalar)
 {
-    Node return_node(scalar * this->x, scalar * this->y, scalar * this->z);
+    Node return_node;
+
+    if(this->isComplex)
+    {
+        return_node = Node(scalar * this->x_complex, scalar * this->y_complex, scalar * this->z_complex);
+    }
+    else
+    {
+        return_node = Node(scalar * this->x, scalar * this->y, scalar * this->z);
+    }
     return return_node;
 }
 
 Node Node::getAddComplexNode(Node node)
 {
-    Node return_node(this->x + node.getXComplexCoord(), 
-                     this->y + node.getYComplexCoord(), 
-                     this->z + node.getZComplexCoord());
+    Node return_node;
+
+    if(this->isComplex)
+    {
+        return_node = Node(this->x_complex + node.getXComplexCoord(), 
+                           this->y_complex + node.getYComplexCoord(), 
+                           this->z_complex + node.getZComplexCoord());
+    }
+    else
+    {
+        return_node = Node(this->x + node.getXComplexCoord(), 
+                           this->y + node.getYComplexCoord(), 
+                           this->z + node.getZComplexCoord());
+    }
+    return return_node;
+}
+
+Node Node::getSubtractComplexNode(Node node)
+{
+    Node return_node;
+
+    if(this->isComplex)
+    {
+        return_node = Node(this->x_complex - node.getXComplexCoord(), 
+                           this->y_complex - node.getYComplexCoord(), 
+                           this->z_complex - node.getZComplexCoord());
+    }
+    else
+    {
+        return_node = Node(this->x - node.getXComplexCoord(), 
+                           this->y - node.getYComplexCoord(), 
+                           this->z - node.getZComplexCoord());
+    }
     return return_node;
 }
 
 std::complex<float> Node::getDot(Node node)
 {
-    return (this->x * node.getXCoord()) +
-           (this->y * node.getYCoord()) + 
-           (this->z * node.getZCoord());            
+    if(this->isComplex)
+    {
+        return (this->x_complex * node.getXCoord()) +
+               (this->y_complex * node.getYCoord()) + 
+               (this->z_complex * node.getZCoord());
+    }
+    else
+    {
+        return (this->x * node.getXCoord()) +
+               (this->y * node.getYCoord()) + 
+               (this->z * node.getZCoord());
+    }            
+}
+
+bool Node::getIsComplex()
+{
+    return this->isComplex;
 }
