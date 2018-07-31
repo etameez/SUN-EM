@@ -3,12 +3,12 @@
 
 class MoMData
 {
-	public:
-		MoMData();
-		~MoMData();
+    public:
+        MoMData();
+        ~MoMData();
 
-	protected:
-	
+    protected:
+    
 };
 
 #endif

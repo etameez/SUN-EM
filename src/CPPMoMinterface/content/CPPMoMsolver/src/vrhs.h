@@ -4,7 +4,7 @@
 class Vrhs
 {
 public:
-	Vrhs();
+    Vrhs();
 
 protected:
 
