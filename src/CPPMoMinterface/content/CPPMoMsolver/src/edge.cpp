@@ -18,7 +18,7 @@
 Edge::Edge(int vertex_1,
            int vertex_2,
            Node centre,
-           float length,
+           double length,
            int minus_triangle_index,
            int plus_triangle_index,
            int minus_free_vertex,
@@ -90,7 +90,7 @@ Node Edge::getCentre()
     return this->centre;
 }
 
-float Edge::getLength()
+double Edge::getLength()
 {
     return this->length;
 }

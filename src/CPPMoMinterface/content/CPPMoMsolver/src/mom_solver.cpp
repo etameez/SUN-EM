@@ -16,7 +16,7 @@
 MoMSolver::MoMSolver(std::vector<Node> nodes,
                      std::vector<Triangle> triangles,
                      std::vector<Edge> edges,
-                     std::vector<float> vrhs,
+                     std::vector<double> vrhs,
                      std::map<std::string, std::string> const_map)
 {
     // This is the constructor for the MoMSolver class
@@ -35,13 +35,13 @@ MoMSolver::MoMSolver(std::vector<Node> nodes,
     // Also note that const_map is of type std::map<std::string, std::string>
     // so all values need to be converted 
     // Lets start by getting the speed of light
-    this->c = std::stof(this->const_map["C0"]);
+    this->c = std::stod(this->const_map["C0"]);
 
     // Then lets get the frequency
     // There are three frequency values in the const_map
     // freqStart, freqEnd and freqData
     // The one needed is freqData
-    this->frequency = std::stof(this->const_map["freqData"]);
+    this->frequency = std::stod(this->const_map["freqData"]);
 
     // Lets get omega(w)
     // This is used in equations 17 and 33 of RWG80
@@ -66,7 +66,7 @@ MoMSolver::MoMSolver(std::vector<Node> nodes,
     // j is synonymous with i in MATLAB
     // Currently, I can't find if <complex> defines it
     // So, lets set j as 0 + 1i
-    std::complex<float> complex_constant(0, 1);
+    std::complex<double> complex_constant(0, 1);
     this->j = complex_constant;
 }
 
@@ -91,21 +91,21 @@ void MoMSolver::calculateZmnByFace()
     // Remember that Zmn will be complex
     // It is of size mxn where m == n == number of edges
     // The number of edges is defined in const_map
-    std::complex<float> z_mn[this->edges.size()][this->edges.size()] = {std::complex<float>(0,0)}; 
+    std::complex<double> z_mn[this->edges.size()][this->edges.size()] = {std::complex<double>(0,0)}; 
 
     for(int p = 0; p < this->triangles.size(); p++)
     {
         for(int q = 0; q < this->triangles.size(); q++)
         {
-            // Lets calculate Apq and Phipq
+        // Lets calculate Apq and Phipq
 	    // Apq is the magnetic vector potential and Phipq is the scalar potential
 	    // For brevity, they will be referred to as A and Phi
 	    // They are found using equations 32 and 33 in RWG80
 	    // and are used in equation 17 in RWG80
-            // To get them, the four I values need to be calculated
+        // To get them, the four I values need to be calculated
 	    // These I values are noted in equations 34a-d in RWG80
-            // Lets put them in a node vector
-            // The form is [A_1 A_2 A_3 Phi]
+        // Lets put them in a node vector
+        // The form is [A_1 A_2 A_3 Phi]
 	    // There are three A values returned. Each corresponds to a triangle
 	    // edge. In equation 32 of RWG80 there exists the ri coordinate.
 	    // 1 O\
@@ -122,23 +122,23 @@ void MoMSolver::calculateZmnByFace()
 	    // then it is trivial to see that A_3 will be used since the free vertex is vertex 3
 	    // Remember that in the mesh, triangles will rarely look like the illustration so it
 	    // is necessary to check for the free vertex in code rather than pre-empting what it will be
-            std::vector<Node> a_and_phi = this->calculateAAndPhi(p, q);
+        std::vector<Node> a_and_phi = this->calculateAAndPhi(p, q);
 
-	    // Now let loop over the source triangle edges.
-	    // It is important to note that since the only edges associated with a
-	    // triangle are the interior(not boundary) edges
-	    // This means that the number of edges varies and is not a constant three
+	        // Now let loop over the source triangle edges.
+	        // It is important to note that since the only edges associated with a
+	        // triangle are the interior(not boundary) edges
+	        // This means that the number of edges varies and is not a constant three
             for(int e = 0; e < this->triangles[q].getEdges().size(); e++)
             {
-	        // Let us get the right A value for the edge
-	        // The explanation on how to choose the correct A value is ^^ (two comments up)
+	            // Let us get the right A value for the edge
+	            // The explanation on how to choose the correct A value is ^^ (two comments up)
                 // Remember that A is agnostic of the triangles positivity so it is fine
-	        // to check both the minus and plus free vertices
-	        // Also remember that the length of the edge was not multiplied in the calculateAAndphi function.
-	        // Only now is the pairing between the edge and the A value so it is imperative not to forget
-	        // to multiply by the length
-	        // The if statement conditions look quite messy, but remember that both the Edge and Triangle
-	        // classes only have indices to the other
+	            // to check both the minus and plus free vertices
+	            // Also remember that the length of the edge was not multiplied in the calculateAAndphi function.
+	            // Only now is the pairing between the edge and the A value so it is imperative not to forget
+	            // to multiply by the length
+	            // The if statement conditions look quite messy, but remember that both the Edge and Triangle
+	            // classes only have indices to the other
                 Node a_pq;
                 if(this->triangles[q].getVertex1() == this->edges[this->triangles[q].getEdges()[e]].getPlusFreeVertex() ||
                    this->triangles[q].getVertex1() == this->edges[this->triangles[q].getEdges()[e]].getMinusFreeVertex())
@@ -158,84 +158,84 @@ void MoMSolver::calculateZmnByFace()
                     a_pq = a_and_phi[2].getScalarMultiply(this->edges[this->triangles[q].getEdges()[e]].getLength());   
                 }
 
-		// Lets create the variable Phi
-		// Since C++ only supports the returning of one entity, Phi was inserted into a node
-		// as the x coordinate
-		// This is just a little workaround to get the value easily
-		// As with A above, now that the edge is known it is important to remember to multiply
-		// the recieved phi value by the edge length
-                std::complex<float> phi = a_and_phi[3].getXComplexCoord() * this->edges[this->triangles[q].getEdges()[e]].getLength();
+		        // Lets create the variable Phi
+		        // Since C++ only supports the returning of one entity, Phi was inserted into a node
+		        // as the x coordinate
+		        // This is just a little workaround to get the value easily
+		        // As with A above, now that the edge is known it is important to remember to multiply
+		        // the recieved phi value by the edge length
+                std::complex<double> phi = a_and_phi[3].getXComplexCoord() * this->edges[this->triangles[q].getEdges()[e]].getLength();
 
-		// Now lets check if the source triangle is a minus or plus triangle for the edge
-		// This is checked using the plus/minus triangle index variable contained in the Edge
-		// class
+		        // Now lets check if the source triangle is a minus or plus triangle for the edge
+		        // This is checked using the plus/minus triangle index variable contained in the Edge
+		        // class
                 if(this->edges[this->triangles[q].getEdges()[e]].getMinusTriangleIndex() == q)
                 {
-		    // The triangle is a minus triangle for the edge
-		    // Lets multiply phi by -1 as shown in equation 33 in RWG80
-		    // Remember that phi is a complex number so it has to be multiplied
-		    // with another complex number
-		    // This does not always have to be done, but it is safer to do so
-		    // The compiler will sometimes throw a type exeption error if forgotten
-                    phi = phi * std::complex<float>(-1.0, 0);
+		            // The triangle is a minus triangle for the edge
+		            // Lets multiply phi by -1 as shown in equation 33 in RWG80
+		            // Remember that phi is a complex number so it has to be multiplied
+		            // with another complex number
+		            // This does not always have to be done, but it is safer to do so
+		            // The compiler will sometimes throw a type exeption error if forgotten
+                    phi = phi * std::complex<double>(-1.0, 0);
                 }
                 else
                 {
-		    // The triangle is a plus triangle for the edge
-		    // Lets multiply a_pq with -1 as shown in equation 32 in RWG80
-		    // The getScalarMultiply member of the Node class is used for
-		    // easy scalar multiplication of a vector
+		            // The triangle is a plus triangle for the edge
+		            // Lets multiply a_pq with -1 as shown in equation 32 in RWG80
+		            // The getScalarMultiply member of the Node class is used for
+		            // easy scalar multiplication of a vector
                     a_pq = a_pq.getScalarMultiply(-1.0);
                 }
 
                 for(int r = 0; r < this->triangles[p].getEdges().size(); r++)
                 {
-		    // Lets loop over the edges of the observation triangle
-		    // These edges will be the m index of the Zmn matrix
+		            // Lets loop over the edges of the observation triangle
+		            // These edges will be the m index of the Zmn matrix
                     // Lets first create two variables, one for rho_c
-		    // and another for the phi sign
-		    Node rho_c;
-                    float phi_sign;
+		            // and another for the phi sign
+		            Node rho_c;
+                    double phi_sign;
 
-		    // Let us check whether the triangle is a plus or minus triangle for the edge
-		    // As noted above, remember that the classes Edge and Triangle only contain
-		    // indices to the other
+		            // Let us check whether the triangle is a plus or minus triangle for the edge
+		            // As noted above, remember that the classes Edge and Triangle only contain
+		            // indices to the other
                     if(this->edges[this->triangles[p].getEdges()[r]].getMinusTriangleIndex() == p)
                     {
-		        // The triangle is a minus triangle for the edge
-		        // Lets get the minus rho c node and assign it to rho_c
-		        // Lets also set the phi_sign to -1
+		                // The triangle is a minus triangle for the edge
+		                // Lets get the minus rho c node and assign it to rho_c
+		                // Lets also set the phi_sign to -1
                         rho_c = this->edges[this->triangles[p].getEdges()[r]].getRhoCMinus();
                         phi_sign = -1;
                     }
                     else
                     {
-		        // The triangle is a plus triangle for the edge
-		        // Lets get the plus rho c node and assign it to rho_c
-		        // Lets also set the phi_sign to 1
+		                // The triangle is a plus triangle for the edge
+		                // Lets get the plus rho c node and assign it to rho_c
+		                // Lets also set the phi_sign to 1
                         rho_c = this->edges[this->triangles[p].getEdges()[r]].getRhoCPlus();
                         phi_sign = 1;
                     }
 
                     // Now that all the necessary values are assembled, lets fill in some
-		    // of the relevant entries of Zmn
-		    // The index n is from the source triangle and
-		    // the index m is from the observation triangle
-		    // It is necessary to remember that this is not the final Zmn value being
-		    // assigned, but only a piece of it contributed by the source and observation
-		    // triangles
-		    // The formula for the final Zmn value is found in equation 17 of RWG80
-		    // As just noted, since this is just a contribution to the final value
-		    // the formula needs to be tweaked as such
-		    // Zmn = Zmn + edge_length_of_observation_triangle *
-		    //             ((j * omega * A * rho_c / 2) - phi * phi_sign)
+		            // of the relevant entries of Zmn
+		            // The index n is from the source triangle and
+		            // the index m is from the observation triangle
+		            // It is necessary to remember that this is not the final Zmn value being
+		            // assigned, but only a piece of it contributed by the source and observation
+		            // triangles
+		            // The formula for the final Zmn value is found in equation 17 of RWG80
+		            // As just noted, since this is just a contribution to the final value
+		            // the formula needs to be tweaked as such
+		            // Zmn = Zmn + edge_length_of_observation_triangle *
+		            //             ((j * omega * A * rho_c / 2) - phi * phi_sign)
                     z_mn[this->triangles[p].getEdges()[r]][this->triangles[q].getEdges()[e]] =
                     z_mn[this->triangles[p].getEdges()[r]][this->triangles[q].getEdges()[e]] +
                         this->edges[this->triangles[p].getEdges()[r]].getLength() *
                             (this->j * 
                             this->omega *
                             a_pq.getDot(rho_c) / 
-                            std::complex<float>(2, 0) -
+                            std::complex<double>(2, 0) -
                             phi * 
                             phi_sign);  
                 }                   
@@ -259,7 +259,7 @@ std::vector<Node> MoMSolver::calculateAAndPhi(int p, int q)
     // The formulae are equations 32 and 33 in RWG80
     // First, lets get the four I's calculated in calculateIpq 
     // Remember, the vector is ordered in [Ipq Ipq_xi Ipq_eta Ipq_zeta]
-    std::vector<std::complex<float>> i_vector = this->calculateIpq(p, q);
+    std::vector<std::complex<double>> i_vector = this->calculateIpq(p, q);
 
     // There are three values for the magnetic vector potential (Apq) and one for the scalar
     // potential(Phipq)
@@ -272,6 +272,10 @@ std::vector<Node> MoMSolver::calculateAAndPhi(int p, int q)
     {
         // Lets do the multiplication of the r's by the I's
         // It's a bit messy with needing to create a new node for each multiplication 
+        // r1 * I_xi        -> a_pq_node_1 
+        // r2 * I_eta       -> a_pq_node_2
+        // r3 * I_zeta      -> a_pq_node_3
+        // ri * I           -> a_pq_node_4
         Node a_pq_node_1 = this->nodes[this->triangles[q].getVertex1()].getScalarMultiply(i_vector[1]);
         Node a_pq_node_2 = this->nodes[this->triangles[q].getVertex2()].getScalarMultiply(i_vector[2]);
         Node a_pq_node_3 = this->nodes[this->triangles[q].getVertex3()].getScalarMultiply(i_vector[3]);
@@ -279,15 +283,14 @@ std::vector<Node> MoMSolver::calculateAAndPhi(int p, int q)
 
         // Now lets add the four terms together
         // Again, it is quite messy
-        Node a_pq_node = a_pq_node_1.getAddComplexNode(a_pq_node_2);
-        a_pq_node = a_pq_node.getAddComplexNode(a_pq_node_3);
+        Node a_pq_node = a_pq_node_1.getAddNode(a_pq_node_2);
+        a_pq_node = a_pq_node.getAddNode(a_pq_node_3);
         a_pq_node = a_pq_node.getSubtractComplexNode(a_pq_node_4);
 
         
         // Now lets multiply the added nodes by mu / 4pi
         // Remember that the length is not multiplied yet
-        //float a_pq_multiplier = std::stof(this->const_map["MU_0"]) / (4 * M_PI);                
-        float a_pq_multiplier =1.000e-07; 
+        double a_pq_multiplier = std::stod(this->const_map["MU_0"]) / (4 * M_PI);                
         a_pq_node = a_pq_node.getScalarMultiply(a_pq_multiplier);
         a_and_phi_vector.push_back(a_pq_node);
     }
@@ -299,14 +302,14 @@ std::vector<Node> MoMSolver::calculateAAndPhi(int p, int q)
     // The compiler sometimes throws type exeption errors so it is necessary to
     // cnvert pi and 2 into complex values
     // If there is a problem with using M_PI, the solution is in the constructor
-    std::complex<float> phi_pq_multiplier = std::complex<float>(1, 0) / 
-                                            (this->j * std::complex<float>(2.0, 0) * 
-                                            std::complex<float>(M_PI, 0) *
+    std::complex<double> phi_pq_multiplier = std::complex<double>(1, 0) / 
+                                            (this->j * std::complex<double>(2.0, 0) * 
+                                            std::complex<double>(M_PI, 0) *
                                             this->omega *
-                                            std::stof(this->const_map["EPS_0"])); 
+                                            std::stod(this->const_map["EPS_0"])); 
     
     // Now lets multiply the multiplier with Ipq as shown in RWG80
-    std::complex<float> phi_pq = i_vector[0] * phi_pq_multiplier;
+    std::complex<double> phi_pq = i_vector[0] * phi_pq_multiplier;
 
     // C++ does not support multiple return values
     // A solution to this is to pass a pointer to the function and change its value
@@ -325,7 +328,7 @@ std::vector<Node> MoMSolver::calculateAAndPhi(int p, int q)
     return  a_and_phi_vector;
 }
 
-std::vector<std::complex<float>> MoMSolver::calculateIpq(int p, int q)
+std::vector<std::complex<double>> MoMSolver::calculateIpq(int p, int q)
 {
     // Lets calculate the 4 Ipq integrals(equations 34a-d in RWG80)
     // The first three(a-c) will be calculated using numerical quadrature
@@ -334,7 +337,7 @@ std::vector<std::complex<float>> MoMSolver::calculateIpq(int p, int q)
     // All the other parameters are specified in const_map
     // If p == q, then singularity treatment may be applied
     // This is defined in const_map whether to use the singularity treatment or not
-    std::vector<std::complex<float>> i_vector;
+    std::vector<std::complex<double>> i_vector;
 
 
     // Lets start by checking for a singularity(p == q)
@@ -353,61 +356,56 @@ std::vector<std::complex<float>> MoMSolver::calculateIpq(int p, int q)
 
         // First lets create the four I's
         // Remember that they are complex
-        std::complex<float> Ipq;        // RWG80 34a
-        std::complex<float> Ipq_xi;     // RWG80 34b
-        std::complex<float> Ipq_eta;    // RWG80 34c
-        std::complex<float> Ipq_zeta;   // RWG80 34d
+        std::complex<double> Ipq;        // RWG80 34a
+        std::complex<double> Ipq_xi;     // RWG80 34b
+        std::complex<double> Ipq_eta;    // RWG80 34c
+        std::complex<double> Ipq_zeta;   // RWG80 34d
 
         // Now lets loop over the quadrature points
         for(int i = 0; i < this->quadrature_weights_values.size(); i++)
         {
             // Lets first get r' as noted in equation 30 in RWG80
             // So, it is [xi * vertex_1, eta * vertex_2, zeta * vertex_3]  
-	    // TODO use node scalar multiplication
-            float r_prime_x = this->quadrature_weights_values[i][1] * this->nodes[this->triangles[q].getVertex1()].getXCoord() +
-                              this->quadrature_weights_values[i][2] * this->nodes[this->triangles[q].getVertex2()].getXCoord() +
-                              this->quadrature_weights_values[i][3] * this->nodes[this->triangles[q].getVertex3()].getXCoord();
-            
-            float r_prime_y = this->quadrature_weights_values[i][1] * this->nodes[this->triangles[q].getVertex1()].getYCoord() +
-                              this->quadrature_weights_values[i][2] * this->nodes[this->triangles[q].getVertex2()].getYCoord() +
-                              this->quadrature_weights_values[i][3] * this->nodes[this->triangles[q].getVertex3()].getYCoord();
-            
-            float r_prime_z = this->quadrature_weights_values[i][1] * this->nodes[this->triangles[q].getVertex1()].getZCoord() +
-                              this->quadrature_weights_values[i][2] * this->nodes[this->triangles[q].getVertex2()].getZCoord() +
-                              this->quadrature_weights_values[i][3] * this->nodes[this->triangles[q].getVertex3()].getZCoord();
+            // xi_r_1       -> xi * r1
+            // eta_r_2      -> eta * r2
+            // zeta_r_3     -> zeta * r3
+            Node xi_r_1 = this->nodes[this->triangles[q].getVertex1()].getScalarMultiply(this->quadrature_weights_values[i][1]); 
+            Node eta_r_2 = this->nodes[this->triangles[q].getVertex2()].getScalarMultiply(this->quadrature_weights_values[i][2]); 
+            Node zeta_r_3 = this->nodes[this->triangles[q].getVertex3()].getScalarMultiply(this->quadrature_weights_values[i][3]);
 
-            Node r_prime(r_prime_x, r_prime_y, r_prime_z);
+            Node r_prime = xi_r_1.getAddNode(eta_r_2);
+            r_prime = r_prime.getAddNode(zeta_r_3); 
 
             // Now, lets get Rp as noted in equation 27 in RWG80
             // C++ doesn't have an easy way to take the norm of a vector
             // Lets do it manually from the node class
             // Here is Rp = norm(triangle_centre - r_prime)
-            float R_p = this->triangles[p].getCentre().getDifferenceBetween(r_prime).getNorm();
+            double R_p = this->triangles[p].getCentre().getDifferenceBetween(r_prime).getNorm();
 
             // Now lets get Greens function
             // That is, Green = (e^(-j*k*R_p)) / R_p
             // Remeber that the imaginary unit 'j' is defined as this->j
-	    // This is noted in as the common term in equations 34a-d in RWG80
-            std::complex<float> greens_function = std::exp(std::complex<float>(-1.0, 0) * this->j * this->k * R_p) / R_p;
+	        // This is noted in as the common term in equations 34a-d in RWG80
+            std::complex<double> greens_function = std::exp(std::complex<double>(-1.0, 0) * this->j * this->k * R_p) / R_p;
 
             // Finally, lets calculate three  of the four I's
-	    // These equations are the same as equations 34a-d in RWG80
-	    // The numerical quadrature rule for a triangular domain is
-	    // I = area * sum<num_quadrature_components>(wi (lambda_1, lambda_2, lambda_3))
-	    // It is important not to confuse theses lambdas with the single lambda defined
-	    // in the constructor
-	    // It is easily noticed that no area value is being multiplied in the instances below.
-	    // The local coordinate system is being used as noted in equation 28 in RWG80 so the
-	    // area referred to in the quadrature formula is equal to 1
-	    // It is also important to note that while not defined in the formula, w needs to be normalised
-	    // This is done by w = 0.5 * w
-            Ipq = Ipq + (this->quadrature_weights_values[i][0] * greens_function);  
+	        // These equations are the same as equations 34a-d in RWG80
+	        // The numerical quadrature rule for a triangular domain is
+	        // I = area * sum<num_quadrature_components>(wi (lambda_1, lambda_2, lambda_3))
+	        // It is important not to confuse theses lambdas with the single lambda defined
+	        // in the constructor
+	        // It is easily noticed that no area value is being multiplied in the instances below.
+	        // The local coordinate system is being used as noted in equation 28 in RWG80 so the
+	        // area referred to in the quadrature formula is equal to 1
+	        // It is also important to note that while not defined in the formula, w needs to be normalised
+	        // This is done by w = 0.5 * w
+            Ipq = Ipq + (std::complex<double>(0.5,0) * this->quadrature_weights_values[i][0] * greens_function);  
                
-            Ipq_xi = Ipq_xi + (this->quadrature_weights_values[i][0] * 
+            Ipq_xi = Ipq_xi + (std::complex<double>(0.5,0) * this->quadrature_weights_values[i][0] * 
                                this->quadrature_weights_values[i][1] * 
                                greens_function);
 
-            Ipq_eta = Ipq_eta + (this->quadrature_weights_values[i][0] * 
+            Ipq_eta = Ipq_eta + (std::complex<double>(0.5,0) * this->quadrature_weights_values[i][0] * 
                                  this->quadrature_weights_values[i][2] * 
                                  greens_function);  
         }

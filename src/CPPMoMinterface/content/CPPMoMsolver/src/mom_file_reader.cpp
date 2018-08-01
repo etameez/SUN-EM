@@ -105,9 +105,9 @@ MoMFileReader::MoMFileReader(std::string file_path)
 
           // Lets add the values to the Node class and push it to node_vector
           // Also have to change the string to float
-          this->node_vector.push_back(Node(std::stof(line_vector[0]),
-                                           std::stof(line_vector[1]),
-                                           std::stof(line_vector[2])));
+          this->node_vector.push_back(Node(std::stod(line_vector[0]),
+                                           std::stod(line_vector[1]),
+                                           std::stod(line_vector[2])));
         }
       }
       else
@@ -155,9 +155,9 @@ MoMFileReader::MoMFileReader(std::string file_path)
           // Lets read to the triangle class
           // Lets first make a node to store the centre
           // Dont forget to convert from string
-          Node centre_node(std::stof(line_vector[3]),
-                           std::stof(line_vector[4]),
-                           std::stof(line_vector[5]));
+          Node centre_node(std::stod(line_vector[3]),
+                           std::stod(line_vector[4]),
+                           std::stod(line_vector[5]));
 
           // Now lets read to a triangle
           // Also, minus 1 from the vertex indices due to MATLAB starting from 1 and 
@@ -166,7 +166,7 @@ MoMFileReader::MoMFileReader(std::string file_path)
                             std::stoi(line_vector[1]) - 1,
                             std::stoi(line_vector[2]) - 1,
                             centre_node,
-                            std::stof(line_vector[6]));
+                            std::stod(line_vector[6]));
 
           // Finally, lets push to vector
           this->triangles.push_back(triangle);
@@ -218,17 +218,17 @@ MoMFileReader::MoMFileReader(std::string file_path)
           // Lets read the data into class Edge
           // First, lets make the Nodes for the centre and the two rho's
           // Don't forget to convert from string
-          Node centre(std::stof(line_vector[2]),
-                      std::stof(line_vector[3]),
-                      std::stof(line_vector[4]));
+          Node centre(std::stod(line_vector[2]),
+                      std::stod(line_vector[3]),
+                      std::stod(line_vector[4]));
 
-          Node rho_c_minus(std::stof(line_vector[10]),
-                           std::stof(line_vector[11]),
-                           std::stof(line_vector[12]));
+          Node rho_c_minus(std::stod(line_vector[10]),
+                           std::stod(line_vector[11]),
+                           std::stod(line_vector[12]));
           
-          Node rho_c_plus(std::stof(line_vector[13]),
-                           std::stof(line_vector[14]),
-                           std::stof(line_vector[15]));
+          Node rho_c_plus(std::stod(line_vector[13]),
+                           std::stod(line_vector[14]),
+                           std::stod(line_vector[15]));
 
           // Now lets add the data into an Edge
           // Also, lets reduce all indices by 1 due to MATLAB starting from 1 and everything
@@ -236,7 +236,7 @@ MoMFileReader::MoMFileReader(std::string file_path)
           Edge edge(std::stoi(line_vector[0]) - 1, // vertex_1
                     std::stoi(line_vector[1]) - 1, // vertex_2
                     centre,                        // center
-                    std::stof(line_vector[5]),     // length
+                    std::stod(line_vector[5]),     // length
                     std::stoi(line_vector[6]) - 1, // minus_triangle_index
                     std::stoi(line_vector[7]) - 1, // plus_triangle_index
                     std::stoi(line_vector[8]) - 1, // minus_free_vertex
@@ -305,7 +305,7 @@ MoMFileReader::MoMFileReader(std::string file_path)
       for(int i = 0; i < num_fields; i++)
       {
         getline(file, str);
-        this->vrhs.push_back(std::stof(str));
+        this->vrhs.push_back(std::stod(str));
       }
     }
     else
@@ -351,7 +351,7 @@ std::vector<Edge> MoMFileReader::getEdges()
   return this->edges;
 }
 
-std::vector<float> MoMFileReader::getVrhs()
+std::vector<double> MoMFileReader::getVrhs()
 {
   return this->vrhs;
 }

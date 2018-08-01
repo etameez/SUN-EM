@@ -5,6 +5,6 @@
 #include <array>
 #include <iostream>
 
-std::vector<std::array<float, 4>> getQuadratureWeightsAndValues(int num_quadrature_points);
+std::vector<std::array<double, 4>> getQuadratureWeightsAndValues(int num_quadrature_points);
 
 #endif

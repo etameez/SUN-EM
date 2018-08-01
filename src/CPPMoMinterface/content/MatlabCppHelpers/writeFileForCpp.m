@@ -81,7 +81,9 @@ function [] = writeFileForCpp(Const, FEKO_data, yVectors)
         fprintf(fid, '%s\t\t%s\t\t%s\n', 'X_COORD', 'Y_COORD', 'Z_COORD');
         
         for i = 1:length(FEKO_data.nodes_xyz)
-            fprintf(fid, '%f\t%f\t%f\n', FEKO_data.nodes_xyz(i, 1),FEKO_data.nodes_xyz(i, 2),FEKO_data.nodes_xyz(i, 3));
+            if ~isnan(FEKO_data.nodes_xyz(i, 1))           
+                fprintf(fid, '%f\t%f\t%f\n', FEKO_data.nodes_xyz(i, 1),FEKO_data.nodes_xyz(i, 2),FEKO_data.nodes_xyz(i, 3));
+            end
         end
         
         fprintf(fid, 'NODES END\n\n');

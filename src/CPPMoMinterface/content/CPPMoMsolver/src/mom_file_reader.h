@@ -21,14 +21,14 @@ class MoMFileReader
         std::vector<Node> getNodes();
         std::vector<Triangle> getTriangles();
         std::vector<Edge> getEdges();
-        std::vector<float> getVrhs();
+        std::vector<double> getVrhs();
   
     protected:
         std::map<std::string, std::string> const_map;
         std::vector<Node> node_vector;
         std::vector<Triangle> triangles;
         std::vector<Edge> edges;
-        std::vector<float> vrhs;
+        std::vector<double> vrhs;
 
         std::vector<std::string> constLineReader(std::string line);
         std::vector<std::string> numberLineReader(std::string line, int num_values);

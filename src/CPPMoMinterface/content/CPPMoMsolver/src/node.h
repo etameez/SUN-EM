@@ -8,36 +8,36 @@ class Node
 {
     public:
         Node();
-        Node(float x_coord, float y_coord, float z_coord);
-        Node(std::complex<float> x_coord, std::complex<float> y_coord, std::complex<float> z_coord);
+        Node(double x_coord, double y_coord, double z_coord);
+        Node(std::complex<double> x_coord, std::complex<double> y_coord, std::complex<double> z_coord);
 
-        float getXCoord();
-        float getYCoord();
-        float getZCoord();
+        double getXCoord();
+        double getYCoord();
+        double getZCoord();
 
-        std::complex<float> getXComplexCoord();
-        std::complex<float> getYComplexCoord();
-        std::complex<float> getZComplexCoord();
+        std::complex<double> getXComplexCoord();
+        std::complex<double> getYComplexCoord();
+        std::complex<double> getZComplexCoord();
 
-        float getDistanceTo(Node node);
+        double getDistanceTo(Node node);
         Node getDifferenceBetween(Node node);
-        float getNorm();
-        Node getScalarMultiply(float scalar);
-        Node getScalarMultiply(std::complex<float> scalar);
-        Node getAddComplexNode(Node node);
+        double getNorm();
+        Node getScalarMultiply(double scalar);
+        Node getScalarMultiply(std::complex<double> scalar);
+        Node getAddNode(Node node);
         Node getSubtractComplexNode(Node node);
-        std::complex<float> getDot(Node node);
+        std::complex<double> getDot(Node node);
         bool getIsComplex();
 
     protected:
-        float x;
-        float y;
-        float z;
+        double x;
+        double y;
+        double z;
 
         bool isComplex;
-        std::complex<float> x_complex;
-        std::complex<float> y_complex;
-        std::complex<float> z_complex;
+        std::complex<double> x_complex;
+        std::complex<double> y_complex;
+        std::complex<double> z_complex;
 };
 
 #endif

@@ -19,7 +19,7 @@ class MoMSolver
         MoMSolver(std::vector<Node> nodes,
                   std::vector<Triangle> triangles,
                   std::vector<Edge> edges,
-                  std::vector<float> vrhs,
+                  std::vector<double> vrhs,
                   std::map<std::string, std::string> const_map);
 
         void calculateZmnByFace();
@@ -28,18 +28,18 @@ class MoMSolver
         std::vector<Node> nodes;
         std::vector<Triangle> triangles;
         std::vector<Edge> edges;
-        std::vector<float> vrhs;
+        std::vector<double> vrhs;
         std::map<std::string, std::string> const_map;
-        std::vector<std::array<float, 4>> quadrature_weights_values;
-        std::complex<float> j;
-        float k; 
-        float frequency;
-        float omega;
-        float lambda;
-        float c;
+        std::vector<std::array<double, 4>> quadrature_weights_values;
+        std::complex<double> j;
+        double k; 
+        double frequency;
+        double omega;
+        double lambda;
+        double c;
 
         std::vector<Node> calculateAAndPhi(int p, int q);
-        std::vector<std::complex<float>> calculateIpq(int p, int q);
+        std::vector<std::complex<double>> calculateIpq(int p, int q);
 
 
     

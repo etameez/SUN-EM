@@ -9,7 +9,7 @@ class Edge
         Edge(int vertex_1,
              int vertex_2,
              Node centre,
-             float length,
+             double length,
              int minus_triangle_index,
              int plus_triangle_index,
              int minus_free_vertex,
@@ -21,7 +21,7 @@ class Edge
         int getVertex1();
         int getVertex2();
         Node getCentre();
-        float getLength();
+        double getLength();
         int getMinusTriangleIndex();
         int getPlusTriangleIndex();
         int getMinusFreeVertex();
@@ -33,7 +33,7 @@ class Edge
         int vertex_1;
         int vertex_2;
         Node centre;
-        float length;
+        double length;
         int minus_triangle_index;
         int plus_triangle_index;
         int minus_free_vertex;

@@ -18,7 +18,7 @@ Node::Node()
     
 }
 
-Node::Node(float x_coord, float y_coord, float z_coord)
+Node::Node(double x_coord, double y_coord, double z_coord)
 {
     this->x = x_coord;
     this->y = y_coord;
@@ -26,7 +26,7 @@ Node::Node(float x_coord, float y_coord, float z_coord)
     this->isComplex = false;
 }
 
-Node::Node(std::complex<float> x_coord, std::complex<float> y_coord, std::complex<float> z_coord)
+Node::Node(std::complex<double> x_coord, std::complex<double> y_coord, std::complex<double> z_coord)
 {
     this->x_complex = x_coord;
     this->y_complex = y_coord;
@@ -34,37 +34,37 @@ Node::Node(std::complex<float> x_coord, std::complex<float> y_coord, std::comple
     this->isComplex = true;
 }
 
-float Node::getXCoord()
+double Node::getXCoord()
 {
     return this->x;
 }
 
-float Node::getYCoord()
+double Node::getYCoord()
 {
     return this->y;
 }
 
-float Node::getZCoord()
+double Node::getZCoord()
 {
     return this->z;
 }
 
-std::complex<float> Node::getXComplexCoord()
+std::complex<double> Node::getXComplexCoord()
 {
     return this->x_complex;
 }
 
-std::complex<float> Node::getYComplexCoord()
+std::complex<double> Node::getYComplexCoord()
 {
     return this->y_complex;
 }
 
-std::complex<float> Node::getZComplexCoord()
+std::complex<double> Node::getZComplexCoord()
 {
     return this->z_complex;
 }
 
-float Node::getDistanceTo(Node node)
+double Node::getDistanceTo(Node node)
 {
     // Lets get the distance
     // Distance = sqrt((x2 - x1)^2 + (y2 - y1)^2 + (z2 - z1)^2)
@@ -84,14 +84,14 @@ Node Node::getDifferenceBetween(Node node)
     return difference_node;
 }
 
-float Node::getNorm()
+double Node::getNorm()
 {
     // Lets get the norm of a node
     // norm = sqrt(x^2 + y^2 + z^2)
     return std::sqrt(std::pow(this->x, 2) + std::pow(this->y, 2) + std::pow(this->z, 2));   
 }
 
-Node Node::getScalarMultiply(float scalar)
+Node Node::getScalarMultiply(double scalar)
 {
     Node return_node;
 
@@ -107,7 +107,7 @@ Node Node::getScalarMultiply(float scalar)
 }
 
 
-Node Node::getScalarMultiply(std::complex<float> scalar)
+Node Node::getScalarMultiply(std::complex<double> scalar)
 {
     Node return_node;
 
@@ -122,21 +122,39 @@ Node Node::getScalarMultiply(std::complex<float> scalar)
     return return_node;
 }
 
-Node Node::getAddComplexNode(Node node)
+Node Node::getAddNode(Node node)
 {
     Node return_node;
 
     if(this->isComplex)
     {
-        return_node = Node(this->x_complex + node.getXComplexCoord(), 
-                           this->y_complex + node.getYComplexCoord(), 
-                           this->z_complex + node.getZComplexCoord());
+        if(node.getIsComplex())
+        {
+            return_node = Node(this->x_complex + node.getXComplexCoord(), 
+                               this->y_complex + node.getYComplexCoord(), 
+                               this->z_complex + node.getZComplexCoord());
+        }
+        else
+        {
+            return_node = Node(this->x_complex + node.getXCoord(),
+                               this->y_complex + node.getYCoord(),
+                               this->z_complex + node.getZCoord());
+        }
     }
     else
     {
-        return_node = Node(this->x + node.getXComplexCoord(), 
-                           this->y + node.getYComplexCoord(), 
-                           this->z + node.getZComplexCoord());
+        if(node.getIsComplex())
+        {
+            return_node = Node(this->x + node.getXComplexCoord(), 
+                               this->y + node.getYComplexCoord(), 
+                               this->z + node.getZComplexCoord());
+        }
+        else
+        {
+            return_node = Node(this->x + node.getXCoord(),
+                               this->y + node.getYCoord(),
+                               this->z + node.getZCoord());
+        }
     }
     return return_node;
 }
@@ -160,7 +178,7 @@ Node Node::getSubtractComplexNode(Node node)
     return return_node;
 }
 
-std::complex<float> Node::getDot(Node node)
+std::complex<double> Node::getDot(Node node)
 {
     if(this->isComplex)
     {
