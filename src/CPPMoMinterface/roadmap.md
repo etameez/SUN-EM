@@ -5,7 +5,7 @@
 - [X] Output File For C++
 - [X] Read .mom file in C++
 - [X] Store the relevant information in C++ classes
-- [ ] MoM Solution using FEKO data
+- [X] MoM Solution using FEKO data
 - [ ] Calculate missing data
 - [ ] MoM solution using calculated data
 - [ ] Compare diagonal of Zmn to FEKO Zmn matrix
