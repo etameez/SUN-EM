@@ -8,6 +8,7 @@
 #include <array>
 #include <cmath>
 #include <iostream>
+#include <chrono>
 #include "node.h"
 #include "edge.h"
 #include "triangle.h"

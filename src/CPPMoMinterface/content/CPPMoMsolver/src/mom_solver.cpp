@@ -49,7 +49,8 @@ MoMSolver::MoMSolver(std::vector<Node> nodes,
     // Note that pi is called as M_PI from the <cmath> library
     // The math library naming is quite strange so it is necessary
     // to remember that <cmath> is for C++ while <math> is for C
-    // If M_PI happens to not work TODO get the declaration
+    // If M_PI happens to not work add #define _USE_MATH_DEFINES before <cmath>
+    // in mom_solver.h
     this->omega = 2 * M_PI * this->frequency;
 
     // Lets get lambda
@@ -72,6 +73,11 @@ MoMSolver::MoMSolver(std::vector<Node> nodes,
 
 void MoMSolver::calculateZmnByFace()
 {
+    // Lets time how long it takes to get Zmn
+    // For reference on a problem of around mxn = 304x304 takes MATLAB 15 seconds
+    // Lets use the high precision clock from <chrono> to be accurate
+    std::chrono::high_resolution_clock::time_point z_mn_time_start = std::chrono::high_resolution_clock::now();
+
     // Lets calculate Zmn by face pair combinations
     // This will be done according to RWG80
 
@@ -242,7 +248,15 @@ void MoMSolver::calculateZmnByFace()
             } 
         }
     }
+    // Lets end the clock now
+    std::chrono::high_resolution_clock::time_point z_mn_time_end = std::chrono::high_resolution_clock::now();
 
+    // Lets get the duration for Zmn to fill
+    std::chrono::duration<double> z_mn_time_span = 
+        std::chrono::duration_cast<std::chrono::duration<double>>(z_mn_time_end - z_mn_time_start);
+
+    // Now lets print the duration 
+    std::cout << "Time to fill Zmn:\t" << z_mn_time_span.count() << "seconds" << std::endl;
     // for(int i = 0; i < this->edges.size(); i++)
     // {
     //     for (int j = 0; j < this->edges.size(); j++)
