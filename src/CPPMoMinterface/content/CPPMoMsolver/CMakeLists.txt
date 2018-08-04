@@ -1,7 +1,9 @@
 cmake_minimum_required (VERSION 3.1)
 set (CMAKE_CXX_STANDARD 11)
+
 project(mom)
 
+include_directories("lib/eigen/")
 find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
 
