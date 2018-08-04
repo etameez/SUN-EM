@@ -194,6 +194,13 @@ std::complex<double> Node::getDot(Node node)
     }            
 }
 
+double Node::getDotNoComplex(Node node)
+{
+    return (this->x * node.getXCoord()) +
+           (this->y * node.getYCoord()) + 
+           (this->z * node.getZCoord());
+}
+
 bool Node::getIsComplex()
 {
     return this->isComplex;

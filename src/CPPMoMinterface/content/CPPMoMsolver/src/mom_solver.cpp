@@ -76,9 +76,26 @@ MoMSolver::MoMSolver(std::vector<Node> nodes,
 void MoMSolver::calculateZmnByFace()
 {
     // Lets time how long it takes to get Zmn
-    // For reference on a problem of around mxn = 304x304 takes MATLAB 15 seconds
+    // For reference on a problem of around mxn = 304x304 takes MATLAB 10 seconds
+    // As of 04 AUgust 2018, this takes 1.3 seconds
     // Lets use the high precision clock from <chrono> to be accurate
-    std::chrono::high_resolution_clock::time_point z_mn_time_start = std::chrono::high_resolution_clock::now();
+    // std::chrono::high_resolution_clock::time_point z_mn_time_start = std::chrono::high_resolution_clock::now();
+    this->z_mn_timer.startTimer();
+    this->z_mn_calculation_timer.startTimer();
+    this->z_mn_calculation_timer.endTimer();
+    // TIME PROFILE
+    // After 1000 iterations
+    // ---- Total Times ----
+    // Time to fill Zmn = 1.2562s
+    // Time to calculate A and Phi = 0.5537114s
+    // Time to calculate 4 I's = 0.180459s
+    //
+    // ---- Breakdown ----
+    // Zmn : 0.719081
+    // A_P : 0.356655
+    // _I_ : 0.180459
+    //
+    // The profile shows that the most time is spent in Zmn
 
     // Lets calculate Zmn by face pair combinations
     // This will be done according to RWG80
@@ -132,7 +149,9 @@ void MoMSolver::calculateZmnByFace()
 	    // then it is trivial to see that A_3 will be used since the free vertex is vertex 3
 	    // Remember that in the mesh, triangles will rarely look like the illustration so it
 	    // is necessary to check for the free vertex in code rather than pre-empting what it will be
+        this->a_phi_timer.startTimer();
         std::vector<Node> a_and_phi = this->calculateAAndPhi(p, q);
+        this->a_phi_timer.endTimer();
 
 	        // Now let loop over the source triangle edges.
 	        // It is important to note that since the only edges associated with a
@@ -256,11 +275,15 @@ void MoMSolver::calculateZmnByFace()
     std::chrono::high_resolution_clock::time_point z_mn_time_end = std::chrono::high_resolution_clock::now();
 
     // Lets get the duration for Zmn to fill
-    std::chrono::duration<double> z_mn_time_span = 
-        std::chrono::duration_cast<std::chrono::duration<double>>(z_mn_time_end - z_mn_time_start);
+    //std::chrono::duration<double> z_mn_time_span = 
+    //    std::chrono::duration_cast<std::chrono::duration<double>>(z_mn_time_end - z_mn_time_start);
+    this->z_mn_timer.endTimer();
 
-    // Now lets print the duration 
-    std::cout << "Time to fill Zmn:\t" << z_mn_time_span.count() << "seconds" << std::endl;
+    // Now lets do some time profiling 
+    this->z_mn_time = this->z_mn_timer.saveTime();
+    this->i_time = this->i_timer.saveTime();
+    this->a_phi_time = this->a_phi_timer.saveTime();
+    std::cout << "DONE A ROUND" << std::endl;
 
     // for(int i = 0; i < this->edges.size(); i++)
     // {
@@ -272,8 +295,46 @@ void MoMSolver::calculateZmnByFace()
     // }
 }
 
+void MoMSolver::calculateVrhsInternally()
+{
+    // Lets calculate the Vrhs data internally
+    // This wil just be for a nomally incident x-directed plane wave
+
+    Node E(1, 0, 0);
+    this->vrhs_internal = std::vector<double>(this->edges.size(), 0);
+
+    for(int i = 0; i < this->edges.size(); i++)
+    {
+        this->vrhs_internal[i] = E.getDotNoComplex(this->edges[i].getRhoCPlus()) / 2 +
+                                 E.getDotNoComplex(this->edges[i].getRhoCMinus()) / 2;
+        this->vrhs_internal[i] = this->vrhs_internal[i] * this->edges[i].getLength();  
+    }
+}
+
 void MoMSolver::calculateJMatrix()
 {
+
+}
+
+void MoMSolver::timeProfiler(int num_iter)
+{
+    double average_z_time = this->z_mn_time / (double)num_iter;
+    double average_i_time = this->i_time / (double)num_iter;
+    double average_a_time = this->a_phi_time / (double)num_iter;
+    double average_c_time = this->z_mn_calculation_time / (double)num_iter;
+
+    std::cout << "Average Z time: " << average_z_time << std::endl;
+    std::cout << "Average A time: " << average_a_time << std::endl;
+    std::cout << "Average I time: " << average_i_time << std::endl;
+    std::cout << "Average C time: " << average_c_time << std::endl;
+
+    std::cout << std::endl;
+    std::cout << std::endl;
+    std::cout << std::endl;
+
+    std::cout << "Z time: " << average_z_time - average_a_time << std::endl;
+    std::cout << "A time: " << average_a_time - average_i_time << std::endl;
+    std::cout << "I time: " << average_i_time                  << std::endl;
 
 }
 
@@ -283,7 +344,9 @@ std::vector<Node> MoMSolver::calculateAAndPhi(int p, int q)
     // The formulae are equations 32 and 33 in RWG80
     // First, lets get the four I's calculated in calculateIpq 
     // Remember, the vector is ordered in [Ipq Ipq_xi Ipq_eta Ipq_zeta]
+    this->i_timer.startTimer();
     std::vector<std::complex<double>> i_vector = this->calculateIpq(p, q);
+    this->i_timer.endTimer();
 
     // There are three values for the magnetic vector potential (Apq) and one for the scalar
     // potential(Phipq)

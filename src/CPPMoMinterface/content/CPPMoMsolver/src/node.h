@@ -27,6 +27,7 @@ class Node
         Node getAddNode(Node node);
         Node getSubtractComplexNode(Node node);
         std::complex<double> getDot(Node node);
+        double getDotNoComplex(Node node);
         bool getIsComplex();
 
     protected:
