@@ -24,6 +24,7 @@ class MoMSolver
                   std::map<std::string, std::string> const_map);
 
         void calculateZmnByFace();
+        void calculateJMatrix();
 
     protected:
         std::vector<Node> nodes;
@@ -32,6 +33,7 @@ class MoMSolver
         std::vector<double> vrhs;
         std::map<std::string, std::string> const_map;
         std::vector<std::array<double, 4>> quadrature_weights_values;
+        std::vector<std::vector<std::complex<double>>> z_mn; 
         std::complex<double> j;
         double k; 
         double frequency;

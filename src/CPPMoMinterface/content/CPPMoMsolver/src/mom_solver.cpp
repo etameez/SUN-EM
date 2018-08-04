@@ -13,6 +13,8 @@
  *
  */
 
+#include <cfenv>
+
 MoMSolver::MoMSolver(std::vector<Node> nodes,
                      std::vector<Triangle> triangles,
                      std::vector<Edge> edges,
@@ -97,7 +99,9 @@ void MoMSolver::calculateZmnByFace()
     // Remember that Zmn will be complex
     // It is of size mxn where m == n == number of edges
     // The number of edges is defined in const_map
-    std::complex<double> z_mn[this->edges.size()][this->edges.size()] = {std::complex<double>(0,0)}; 
+    //std::complex<double> z_mn[this->edges.size()][this->edges.size()] = {std::complex<double>(0,0)}; 
+    std::vector<std::complex<double>> row_vector(this->edges.size(), 0);
+    this->z_mn = std::vector<std::vector<std::complex<double>>>(this->edges.size(), row_vector);
 
     for(int p = 0; p < this->triangles.size(); p++)
     {
@@ -235,8 +239,8 @@ void MoMSolver::calculateZmnByFace()
 		            // the formula needs to be tweaked as such
 		            // Zmn = Zmn + edge_length_of_observation_triangle *
 		            //             ((j * omega * A * rho_c / 2) - phi * phi_sign)
-                    z_mn[this->triangles[p].getEdges()[r]][this->triangles[q].getEdges()[e]] =
-                    z_mn[this->triangles[p].getEdges()[r]][this->triangles[q].getEdges()[e]] +
+                    this->z_mn[this->triangles[p].getEdges()[r]][this->triangles[q].getEdges()[e]] =
+                    this->z_mn[this->triangles[p].getEdges()[r]][this->triangles[q].getEdges()[e]] +
                         this->edges[this->triangles[p].getEdges()[r]].getLength() *
                             (this->j * 
                             this->omega *
@@ -257,6 +261,7 @@ void MoMSolver::calculateZmnByFace()
 
     // Now lets print the duration 
     std::cout << "Time to fill Zmn:\t" << z_mn_time_span.count() << "seconds" << std::endl;
+
     // for(int i = 0; i < this->edges.size(); i++)
     // {
     //     for (int j = 0; j < this->edges.size(); j++)
@@ -265,6 +270,11 @@ void MoMSolver::calculateZmnByFace()
     //     }
     //     std::cout << std::endl;
     // }
+}
+
+void MoMSolver::calculateJMatrix()
+{
+
 }
 
 std::vector<Node> MoMSolver::calculateAAndPhi(int p, int q)
