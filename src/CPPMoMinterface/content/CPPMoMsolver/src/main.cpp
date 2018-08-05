@@ -24,16 +24,17 @@ int main()
   std::string path = "/Users/tameez/Dropbox/pec_plate.mom";
   MoMFileReader reader(path);
   MoMSolver solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
-  //solver.calculateZmnByFace();
+  solver.calculateZmnByFace();
   solver.calculateVrhsInternally();
+  solver.calculateJMatrix();
   
 
-  for(int i = 0; i < 1000; i++)
-  { 
-    solver.calculateZmnByFace();
-  }
+  // for(int i = 0; i < 1000; i++)
+  // { 
+  //   solver.calculateZmnByFace();
+  // }
 
-  solver.timeProfiler(1000);
+  solver.timeProfiler(1);
 
 
   // Eigen test

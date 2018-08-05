@@ -81,8 +81,6 @@ void MoMSolver::calculateZmnByFace()
     // Lets use the high precision clock from <chrono> to be accurate
     // std::chrono::high_resolution_clock::time_point z_mn_time_start = std::chrono::high_resolution_clock::now();
     this->z_mn_timer.startTimer();
-    this->z_mn_calculation_timer.startTimer();
-    this->z_mn_calculation_timer.endTimer();
     // TIME PROFILE
     // After 1000 iterations
     // ---- Total Times ----
@@ -313,7 +311,33 @@ void MoMSolver::calculateVrhsInternally()
 
 void MoMSolver::calculateJMatrix()
 {
+    // Lets calcualte the I vector
+    // TEST
+    // LU-decomposition /w partial pivot
+    // Using Eigen3
 
+    // First lets put the values into relevant Eigen datatypes
+    Eigen::MatrixXcd m(this->edges.size(), this->edges.size()); 
+
+    for(int i = 0; i < this->edges.size(); i++)
+    {
+        for(int j = 0; j < this->edges.size(); j++)
+        {
+            m(i, j) = this->z_mn[i][j];
+        }
+    }
+
+    Eigen::VectorXcd v(this->edges.size());
+
+    for(int i = 0; i < this->vrhs_internal.size(); i++)
+    {
+        std::complex<double> temp(this->vrhs_internal[i]);
+        v(i) = temp;
+    }
+
+    this->j_timer.startTimer();
+    Eigen::VectorXcd i_lhs = m.partialPivLu().solve(v);
+    this->j_timer.endTimer();
 }
 
 void MoMSolver::timeProfiler(int num_iter)
@@ -321,12 +345,12 @@ void MoMSolver::timeProfiler(int num_iter)
     double average_z_time = this->z_mn_time / (double)num_iter;
     double average_i_time = this->i_time / (double)num_iter;
     double average_a_time = this->a_phi_time / (double)num_iter;
-    double average_c_time = this->z_mn_calculation_time / (double)num_iter;
+    double average_j_time = this->j_time / (double)num_iter;
 
     std::cout << "Average Z time: " << average_z_time << std::endl;
     std::cout << "Average A time: " << average_a_time << std::endl;
     std::cout << "Average I time: " << average_i_time << std::endl;
-    std::cout << "Average C time: " << average_c_time << std::endl;
+    std::cout << "Average J time: " << average_j_time << std::endl;
 
     std::cout << std::endl;
     std::cout << std::endl;

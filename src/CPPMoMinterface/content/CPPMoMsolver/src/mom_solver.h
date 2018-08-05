@@ -9,6 +9,7 @@
 #include <cmath>
 #include <iostream>
 #include <chrono>
+#include <Eigen/Dense>
 #include "node.h"
 #include "edge.h"
 #include "triangle.h"
@@ -55,10 +56,10 @@ class MoMSolver
         Timer z_mn_timer;
         Timer i_timer;
         Timer a_phi_timer;
-        Timer z_mn_calculation_timer;
+        Timer j_timer;
         double i_time;
         double a_phi_time;
         double z_mn_time;
-        double z_mn_calculation_time;
+        double j_time;
 };
 #endif
