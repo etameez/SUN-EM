@@ -14,6 +14,4 @@ SimOutput.log
 
 src/CPPMoMinterface/content/CPPMoMsolver/\.build/
 
-*.mom
-
 src/CPPMoMinterface/content/CPPMoMsolver/\.vscode/

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd ~/git/SUN-EM/src/CPPMoMinterface/content/CPPMoMsolver/.build/
+cd .build/
 cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 make
-./mom
+mpiexec -np 4 ./mom

@@ -10,6 +10,8 @@
 #include <iostream>
 #include <chrono>
 #include <Eigen/Dense>
+#include <fstream>
+#include <mpi.h>
 #include "node.h"
 #include "edge.h"
 #include "triangle.h"
@@ -25,9 +27,15 @@ class MoMSolver
                   std::vector<double> vrhs,
                   std::map<std::string, std::string> const_map);
 
+        // Serial
         void calculateZmnByFace();
         void calculateVrhsInternally();
         void calculateJMatrix();
+
+        // MPI
+        void calculateZmnByFaceMPI();
+        int numValuesMPI(int num_procs, int rank, int data_length);
+        std::vector<double> workMPI(std::vector<int> p_values); // RENAME
 
         // Time profiling
         void timeProfiler(int num_iter);
@@ -57,6 +65,7 @@ class MoMSolver
         Timer i_timer;
         Timer a_phi_timer;
         Timer j_timer;
+        Timer z_mn_timer_mpi;
         double i_time;
         double a_phi_time;
         double z_mn_time;

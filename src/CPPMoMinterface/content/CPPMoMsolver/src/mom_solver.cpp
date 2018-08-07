@@ -273,15 +273,12 @@ void MoMSolver::calculateZmnByFace()
     std::chrono::high_resolution_clock::time_point z_mn_time_end = std::chrono::high_resolution_clock::now();
 
     // Lets get the duration for Zmn to fill
-    //std::chrono::duration<double> z_mn_time_span = 
-    //    std::chrono::duration_cast<std::chrono::duration<double>>(z_mn_time_end - z_mn_time_start);
     this->z_mn_timer.endTimer();
 
     // Now lets do some time profiling 
     this->z_mn_time = this->z_mn_timer.saveTime();
     this->i_time = this->i_timer.saveTime();
     this->a_phi_time = this->a_phi_timer.saveTime();
-    std::cout << "DONE A ROUND" << std::endl;
 
     // for(int i = 0; i < this->edges.size(); i++)
     // {
@@ -312,11 +309,11 @@ void MoMSolver::calculateVrhsInternally()
 void MoMSolver::calculateJMatrix()
 {
     // Lets calcualte the I vector
-    // TEST
     // LU-decomposition /w partial pivot
     // Using Eigen3
 
     // First lets put the values into relevant Eigen datatypes
+    // TODO After OpenMP switch all to Matrices to Eigen Datatypes
     Eigen::MatrixXcd m(this->edges.size(), this->edges.size()); 
 
     for(int i = 0; i < this->edges.size(); i++)
@@ -335,9 +332,225 @@ void MoMSolver::calculateJMatrix()
         v(i) = temp;
     }
 
+    // Now lets solve for I
     this->j_timer.startTimer();
     Eigen::VectorXcd i_lhs = m.partialPivLu().solve(v);
     this->j_timer.endTimer();
+}
+
+void MoMSolver::calculateZmnByFaceMPI()
+{
+
+
+    // Lets get the mpi rank and size
+    // rank -> which process is running
+    // size -> total number of processes 
+    int size;
+    int rank;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    // Lets load the quadrature weights and values for all processes
+    int num_quadrature_points = std::stoi(this->const_map["QUAD_PTS"]); 
+    this->quadrature_weights_values = getQuadratureWeightsAndValues(num_quadrature_points); 
+ 
+
+    // Lets assign the p values per process
+    // p is from 0 -> number_of_triangles
+    // Lets split up p as eqully as possible to the processes
+    // First lets declare a vector to store the p values
+    std::vector<int> sub_p_values;
+    int index;
+
+    // Now lets split up p
+    // The variable index is used as a starting point for th values to be split
+    // e.g. p is:
+    // 0 1 2 3 4 5 6 7 8 9
+    // and there are two processes
+    // so process 0 will get from 0 -> 4
+    // and process 1 will get from 5 -> 9
+    if(rank == 0)
+    {
+        for(int i = 0; i < this->numValuesMPI(size, rank, this->triangles.size()); i++)
+        {
+            sub_p_values.push_back(i);
+        }
+    }
+    else
+    {   
+        index = 0;
+        for(int i = 0; i < rank; i++)
+        {
+            index += this->numValuesMPI(size, i, this->triangles.size());
+        }
+        for(int i = index; i < this->numValuesMPI(size, rank, this->triangles.size()) + index; i++)
+        {
+            sub_p_values.push_back(i);
+        }
+    }
+
+    // Lets calculate all the portions of Zmn specified by the processes p values
+    std::vector<double> sub_zmn = this->workMPI(sub_p_values);
+    
+    // Lets gather all the vector sizes
+    // Lets first create a vector to store the sizes  
+    std::vector<int> proc_vector_size;
+    proc_vector_size.resize(size);
+
+    // Now lets get the size of sub_zmn for each process
+    int z_mn_size = sub_zmn.size();
+
+    // Now lets send them to the main process
+    MPI_Gather(&z_mn_size, 1, MPI_INT, &proc_vector_size[0], 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    // Now that the size of the data is available to the root process
+    // Lets gather all the data
+    // First lets define two vectors
+    // The first is to store the data
+    // The seconds is to store the displacements of the data
+    std::vector<double> all_zmn_data;
+    std::vector<int> disps;
+
+    // Lets resize the disps
+    disps.resize(size);
+
+    // Now lets fill in disps
+    for(int i = 0; i < size; i++)
+    {
+        if(i == 0)
+        {
+            // The first displacement is always 0
+            disps[i] = 0;
+        }
+        else
+        {
+            disps[i] = disps[i - 1] + proc_vector_size[i - 1];
+        }
+    }
+
+    // Lets resize all_zmn_data but just for the root process
+    if(rank == 0)
+    {
+        all_zmn_data.resize(disps[size - 1] + proc_vector_size[size - 1]);
+    }
+
+    // Lets now gather all the Zmn sub data into the main process
+    MPI_Gatherv(&sub_zmn[0], sub_zmn.size(), MPI_DOUBLE, &all_zmn_data[0],
+                 &proc_vector_size[0], &disps[0], MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    // Now lets fill all of Zmn
+    if(rank == 0)
+    {
+        // Lets resize the internal Zmn
+        std::vector<std::complex<double>> row_vector(this->edges.size(), 0);
+        this->z_mn = std::vector<std::vector<std::complex<double>>>(this->edges.size(), row_vector);
+
+        int index;
+        for(int i = 0; i < all_zmn_data.size() / 4; i++)
+        {
+            index = i * 4;
+            std::complex<double> temp(all_zmn_data[index + 2], all_zmn_data[index + 3]);
+            this->z_mn[(int)all_zmn_data[index]][(int)all_zmn_data[index + 1]] += temp; 
+        }
+        // for(int i = 0; i < this->edges.size(); i++)
+        // {
+        //     for(int j = 0; j < this->edges.size(); j++)
+        //     {
+        //         std::cout << this->z_mn[i][j];
+        //     }
+        //     std::cout << std::endl;
+        // }
+    }
+}
+
+int MoMSolver::numValuesMPI(int num_procs, int rank, int data_length)
+{
+    // Efficiently distribute work between processes
+    // https://stackoverflow.com/questions/5657158/how-to-distribute-a-vector-of-n-elements-across-p-processors
+
+    return (data_length + rank) / num_procs;
+}
+
+std::vector<double> MoMSolver::workMPI(std::vector<int> p_values) // RENAME
+{
+    // See MoMSolver::calculateZmnByFace() for full commentary
+
+    std::vector<double> partial_zmn;
+    for(int i = 0; i < p_values.size(); i++)
+    {
+        int p = p_values[i];
+
+        for(int q = 0; q < this->triangles.size(); q++)
+        {
+            std::vector<Node> a_and_phi = this->calculateAAndPhi(p, q);
+
+            for(int e = 0; e < this->triangles[q].getEdges().size(); e++)
+            {
+                Node a_pq;
+                if(this->triangles[q].getVertex1() == this->edges[this->triangles[q].getEdges()[e]].getPlusFreeVertex() ||
+                 this->triangles[q].getVertex1() == this->edges[this->triangles[q].getEdges()[e]].getMinusFreeVertex())
+                {
+                    a_pq = a_and_phi[0].getScalarMultiply(this->edges[this->triangles[q].getEdges()[e]].getLength());   
+                }
+
+                if(this->triangles[q].getVertex2() == this->edges[this->triangles[q].getEdges()[e]].getPlusFreeVertex() ||
+                 this->triangles[q].getVertex2() == this->edges[this->triangles[q].getEdges()[e]].getMinusFreeVertex())
+                {
+                    a_pq = a_and_phi[1].getScalarMultiply(this->edges[this->triangles[q].getEdges()[e]].getLength());   
+                }
+
+                if(this->triangles[q].getVertex3() == this->edges[this->triangles[q].getEdges()[e]].getPlusFreeVertex() ||
+                 this->triangles[q].getVertex3() == this->edges[this->triangles[q].getEdges()[e]].getMinusFreeVertex())
+                {
+                    a_pq = a_and_phi[2].getScalarMultiply(this->edges[this->triangles[q].getEdges()[e]].getLength());   
+                }
+
+                std::complex<double> phi = a_and_phi[3].getXComplexCoord() * this->edges[this->triangles[q].getEdges()[e]].getLength();
+
+                if(this->edges[this->triangles[q].getEdges()[e]].getMinusTriangleIndex() == q)
+                {
+                    phi = phi * std::complex<double>(-1.0, 0);
+                }
+                else
+                {
+                    a_pq = a_pq.getScalarMultiply(-1.0);
+                }
+
+                for(int r = 0; r < this->triangles[p].getEdges().size(); r++)
+                {
+                    Node rho_c;
+                    double phi_sign;
+
+                    if(this->edges[this->triangles[p].getEdges()[r]].getMinusTriangleIndex() == p)
+                    {
+                        rho_c = this->edges[this->triangles[p].getEdges()[r]].getRhoCMinus();
+                        phi_sign = -1;
+                    }
+                    else
+                    {
+                        rho_c = this->edges[this->triangles[p].getEdges()[r]].getRhoCPlus();
+                        phi_sign = 1;
+                    }
+
+                    partial_zmn.push_back(this->triangles[p].getEdges()[r]);
+                    partial_zmn.push_back(this->triangles[q].getEdges()[e]);
+
+                    std::complex<double> temp_zmn_value = 
+                    this->edges[this->triangles[p].getEdges()[r]].getLength() *
+                    (this->j * 
+                        this->omega *
+                        a_pq.getDot(rho_c) / 
+                        std::complex<double>(2, 0) -
+                        phi * 
+                        phi_sign);
+                    partial_zmn.push_back(temp_zmn_value.real());  
+                    partial_zmn.push_back(temp_zmn_value.imag());  
+                }                   
+            } 
+        }
+    }
+
+    return partial_zmn;
 }
 
 void MoMSolver::timeProfiler(int num_iter)
