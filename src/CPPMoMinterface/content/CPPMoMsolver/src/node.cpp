@@ -6,7 +6,8 @@
  *
  *  Detailed description
  *  This class will be used to store the nodes of the mesh. A node consists of x, y and z
- *  co-ordinates,
+ *  co-ordinates. This class will also be used to store vector data created by intermediate
+ *  calculations.
  *
  *  Author:  Tameez Ebrahim
  *  Created: 27 July 2018
@@ -20,6 +21,7 @@ Node::Node()
 
 Node::Node(double x_coord, double y_coord, double z_coord)
 {
+    // The constructor for a non-complex node
     this->x = x_coord;
     this->y = y_coord;
     this->z = z_coord;  
@@ -28,6 +30,7 @@ Node::Node(double x_coord, double y_coord, double z_coord)
 
 Node::Node(std::complex<double> x_coord, std::complex<double> y_coord, std::complex<double> z_coord)
 {
+    // The constructor for a complex node
     this->x_complex = x_coord;
     this->y_complex = y_coord;
     this->z_complex = z_coord;  
@@ -93,6 +96,8 @@ double Node::getNorm()
 
 Node Node::getScalarMultiply(double scalar)
 {
+    // Lets get the scalar multiplication of a node by a real number
+    // Node = a * (x, y, z)
     Node return_node;
 
     if(this->isComplex)
@@ -109,6 +114,8 @@ Node Node::getScalarMultiply(double scalar)
 
 Node Node::getScalarMultiply(std::complex<double> scalar)
 {
+    // Lets get the scalar multiplication of a node by a complex number
+    // Node = (a + bi) * (x, y, z) 
     Node return_node;
 
     if(this->isComplex)
@@ -124,6 +131,10 @@ Node Node::getScalarMultiply(std::complex<double> scalar)
 
 Node Node::getAddNode(Node node)
 {
+    // Lets add two nodes together
+    // The if statements are needed to take into account the complexity of both nodes
+    // It is important to remember that each node could be either complex or real
+    // sum = (x1 + x2, y1 + y2, z1 + z2)
     Node return_node;
 
     if(this->isComplex)
@@ -161,6 +172,14 @@ Node Node::getAddNode(Node node)
 
 Node Node::getSubtractComplexNode(Node node)
 {
+    // Lets subtract this node from another
+    // The if statements are needed to take into account the complexity of both nodes
+    // It is important to remember that the current node is either real or complex, 
+    // but the input node is always complex
+    // sum = (x1 + x2, y1 + y2, z1 + z2)
+
+    // TODO change structure to that of getAddNode() to be more general 
+
     Node return_node;
 
     if(this->isComplex)
@@ -180,6 +199,13 @@ Node Node::getSubtractComplexNode(Node node)
 
 std::complex<double> Node::getDot(Node node)
 {
+    // Lets compute the dot product of this node by another
+    // It is important to remember that this node can be either complex or real,
+    // but the input node is always real
+    // dot_product = (x1 * x2) + (y1 * y2) + (z1 * z2)
+
+    // TODO change to be more general. Input node could be complex or real
+
     if(this->isComplex)
     {
         return (this->x_complex * node.getXCoord()) +
@@ -196,6 +222,12 @@ std::complex<double> Node::getDot(Node node)
 
 double Node::getDotNoComplex(Node node)
 {
+    // No need for this I think
+    // TODO check how this is used and change to getDot(Node node)
+    // Used in Vrhs calculations
+    // Needs to return a double
+    // But, vrhs needs to be complex aswell for calculation reasons
+    // TODO change vrhs to complex
     return (this->x * node.getXCoord()) +
            (this->y * node.getYCoord()) + 
            (this->z * node.getZCoord());
@@ -203,5 +235,6 @@ double Node::getDotNoComplex(Node node)
 
 bool Node::getIsComplex()
 {
+    // Lets check if the node is complex
     return this->isComplex;
 }

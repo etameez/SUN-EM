@@ -294,6 +294,8 @@ void MoMSolver::calculateVrhsInternally()
 {
     // Lets calculate the Vrhs data internally
     // This wil just be for a nomally incident x-directed plane wave
+    // TODO make more general
+    // TODO change to complex for ease of use in calculations
 
     Node E(1, 0, 0);
     this->vrhs_internal = std::vector<double>(this->edges.size(), 0);
@@ -314,6 +316,7 @@ void MoMSolver::calculateJMatrix()
 
     // First lets put the values into relevant Eigen datatypes
     // TODO After OpenMP switch all to Matrices to Eigen Datatypes
+    // TODO change function name
     Eigen::MatrixXcd m(this->edges.size(), this->edges.size()); 
 
     for(int i = 0; i < this->edges.size(); i++)
