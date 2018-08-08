@@ -6,9 +6,9 @@ This project will solve for the Method of Moments using C++.
 
 The will be both a serial and parallel version. The parallel version will use both MPI and OpenMP.
 
-Written By: Tameez Ebrahim
-Contact:	etameez@gmail.com
-Date:		Q3 2018
+Written By: Tameez Ebrahim  
+Contact:    etameez@gmail.com  
+Date:       Q3 2018  
 
 ## Dependencies
 
@@ -23,18 +23,18 @@ This was tested on Arch Linux 4.17.11 and macOS 10.12.6 using MPICH3 for the MPI
 
 ### Quick Setup
 1. cd content/CPPMoMsolver/
-2. mkdir build 						// For serial 
-3. mkdir build_mpi					// For parallel
-4. ./build.sh or ./build_mpi.sh		// Serial and Parallel respectively  
+2. mkdir build                      // For serial 
+3. mkdir build_mpi                  // For parallel
+4. ./build.sh or ./build_mpi.sh     // Serial and Parallel respectively  
 
 ### Self Compilation
-1. cmake -DMPI=ON <path_to_build_directory> // For parallel
-   cmake <path_to_build_directory> 			// For serial
-2. make										// Linux and macOS
-   nmake									// Windows if compiler is MSVC 
-   mingw32-make								// Windows if compiler is MinGW
-3. ./mom or ./mom_mpi 						// Linux and macOS
-   mom or mom_mpi 							// Windows
+1. cmake -DMPI=ON <path_to_build_directory> // For parallel  
+   cmake <path_to_build_directory>          // For serial  
+2. make                                     // Linux and macOS  
+   nmake                                    // Windows if compiler is MSVC   
+   mingw32-make                             // Windows if compiler is MinGW  
+3. ./mom or ./mom_mpi                       // Linux and macOS  
+   mom or mom_mpi                           // Windows  
 
 If you are using Windows use either -G "MinGW Makefiles" or -G "NMake Makefiles" as an extra CMake compile command
 e.g. cmake <path_to_build_directory> -G "MinGW Makefiles". Only MinGW was tested so YMMV with nmake.
