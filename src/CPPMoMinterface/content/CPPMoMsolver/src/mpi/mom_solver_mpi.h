@@ -1,5 +1,5 @@
-#ifndef MOM_SOLVER
-#define MOM_SOLVER
+#ifndef MOM_SOLVER_MPI
+#define MOM_SOLVER_MPI
 
 #include <vector>
 #include <map>
@@ -11,28 +11,27 @@
 #include <chrono>
 #include <Eigen/Dense>
 #include <fstream>
-#include "node.h"
-#include "edge.h"
-#include "triangle.h"
-#include "quadrature.h"
-#include "timer.h"
+#include <mpi.h>
+#include "../node.h"
+#include "../edge.h"
+#include "../triangle.h"
+#include "../quadrature.h"
+#include "../timer.h"
 
-class MoMSolver
+class MoMSolverMPI
 {
     public:
-        MoMSolver(std::vector<Node> nodes,
+        MoMSolverMPI(std::vector<Node> nodes,
                   std::vector<Triangle> triangles,
                   std::vector<Edge> edges,
                   std::vector<double> vrhs,
                   std::map<std::string, std::string> const_map);
 
-        void calculateZmnByFace();
         void calculateVrhsInternally();
         void calculateJMatrix();
-
-        // Time profiling
-        void timeProfiler(int num_iter);
-
+        void calculateZmnByFaceMPI();
+        int numValuesMPI(int num_procs, int rank, int data_length);
+        std::vector<double> workMPI(std::vector<int> p_values); // RENAME
 
     protected:
         std::vector<Node> nodes;
@@ -53,15 +52,5 @@ class MoMSolver
         std::vector<Node> calculateAAndPhi(int p, int q);
         std::vector<std::complex<double>> calculateIpq(int p, int q);
 
-        // Time profiling
-        Timer z_mn_timer;
-        Timer i_timer;
-        Timer a_phi_timer;
-        Timer j_timer;
-        Timer z_mn_timer_mpi;
-        double i_time;
-        double a_phi_time;
-        double z_mn_time;
-        double j_time;
 };
 #endif

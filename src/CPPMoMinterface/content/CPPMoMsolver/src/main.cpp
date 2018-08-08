@@ -15,43 +15,18 @@
 #include "mom_file_reader.h"
 #include "mom_solver.h"
 #include "timer.h"
-#include <mpi.h>
 
 int main()
 {
-    MPI_Init(NULL, NULL);
-
-    int size;
-    int rank;
-
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    
     std::string path = "../../../../../examples/example-10/pec_plate.mom";
     MoMFileReader reader(path); 
     MoMSolver solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
 
-    Timer t;
-    if(rank == 0)
-    {
-        t.startTimer();
-    }
+    solver.calculateZmnByFace();
+    solver.calculateVrhsInternally();
+    solver.calculateJMatrix();
+    solver.timeProfiler(1);
 
-    solver.calculateZmnByFaceMPI();
-    if(rank == 0)
-    {
-        t.endTimer();
-        std::cout << "The MPI ZMN TIME: " << std::endl;
-        t.printTime();
-        std::cout << std::endl << std::endl;
-
-        solver.calculateZmnByFace();
-        solver.calculateVrhsInternally();
-        solver.calculateJMatrix();
-        solver.timeProfiler(1);
-    }
-
-    MPI_Finalize();
   
     return 0;
 }

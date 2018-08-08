@@ -1,4 +1,4 @@
-#include "mom_solver.h"
+#include "mom_solver_mpi.h"
 
 /**
  *   \file mom_solver.cpp
@@ -13,9 +13,7 @@
  *
  */
 
-#include <cfenv>
-
-MoMSolver::MoMSolver(std::vector<Node> nodes,
+MoMSolverMPI::MoMSolverMPI(std::vector<Node> nodes,
                      std::vector<Triangle> triangles,
                      std::vector<Edge> edges,
                      std::vector<double> vrhs,
@@ -73,224 +71,7 @@ MoMSolver::MoMSolver(std::vector<Node> nodes,
     this->j = complex_constant;
 }
 
-void MoMSolver::calculateZmnByFace()
-{
-    // Lets time how long it takes to get Zmn
-    // For reference on a problem of around mxn = 304x304 takes MATLAB 10 seconds
-    // As of 04 AUgust 2018, this takes 1.3 seconds
-    // Lets use the high precision clock from <chrono> to be accurate
-    // std::chrono::high_resolution_clock::time_point z_mn_time_start = std::chrono::high_resolution_clock::now();
-    this->z_mn_timer.startTimer();
-    // TIME PROFILE
-    // After 1000 iterations
-    // ---- Total Times ----
-    // Time to fill Zmn = 1.2562s
-    // Time to calculate A and Phi = 0.5537114s
-    // Time to calculate 4 I's = 0.180459s
-    //
-    // ---- Breakdown ----
-    // Zmn : 0.719081
-    // A_P : 0.356655
-    // _I_ : 0.180459
-    //
-    // The profile shows that the most time is spent in Zmn
-
-    // Lets calculate Zmn by face pair combinations
-    // This will be done according to RWG80
-
-    // Before starting, lets assign the quadrature weights and points
-    // First lets get the number of quadrature points from const_map
-    // Remember that all values in const_map are strings
-    int num_quadrature_points = std::stoi(this->const_map["QUAD_PTS"]); 
-
-    // Then lets assign the weights and values
-    this->quadrature_weights_values = getQuadratureWeightsAndValues(num_quadrature_points); 
-
-    // Lets start by looping over the faces twice to get faces p and q
-    // p -> observation triangle 
-    // q -> source triangle
-
-    // Declare Zmn TODO change
-    // Remember that Zmn will be complex
-    // It is of size mxn where m == n == number of edges
-    // The number of edges is defined in const_map
-    //std::complex<double> z_mn[this->edges.size()][this->edges.size()] = {std::complex<double>(0,0)}; 
-    std::vector<std::complex<double>> row_vector(this->edges.size(), 0);
-    this->z_mn = std::vector<std::vector<std::complex<double>>>(this->edges.size(), row_vector);
-
-    for(int p = 0; p < this->triangles.size(); p++)
-    {
-        for(int q = 0; q < this->triangles.size(); q++)
-        {
-        // Lets calculate Apq and Phipq
-	    // Apq is the magnetic vector potential and Phipq is the scalar potential
-	    // For brevity, they will be referred to as A and Phi
-	    // They are found using equations 32 and 33 in RWG80
-	    // and are used in equation 17 in RWG80
-        // To get them, the four I values need to be calculated
-	    // These I values are noted in equations 34a-d in RWG80
-        // Lets put them in a node vector
-        // The form is [A_1 A_2 A_3 Phi]
-	    // There are three A values returned. Each corresponds to a triangle
-	    // edge. In equation 32 of RWG80 there exists the ri coordinate.
-	    // 1 O\
-	    //   | O 3  <-- This is a triangle
-	    // 2 O/
-	    // If we imagine the the above is a triangle with the O's as it's vertices
-	    // the ri coordinate will refer to each of the vertices in turn.
-	    // Now, how does one choose which A value of the three to use?
-	    // This is where the free vertices come into play
-	    // The Triangle class has three vertices [v1 v2 v3] >> [1 2 3] in the illustration
-	    // A_1 has ri = v1, A_2 has ri = v2 and A_3 has ri = v3
-	    // The edge is checked for the free vertex and then the appropriate A is used
-	    // If the horizontal edge, | in the illustration needs to be assigned an A value,
-	    // then it is trivial to see that A_3 will be used since the free vertex is vertex 3
-	    // Remember that in the mesh, triangles will rarely look like the illustration so it
-	    // is necessary to check for the free vertex in code rather than pre-empting what it will be
-        this->a_phi_timer.startTimer();
-        std::vector<Node> a_and_phi = this->calculateAAndPhi(p, q);
-        this->a_phi_timer.endTimer();
-
-	        // Now let loop over the source triangle edges.
-	        // It is important to note that since the only edges associated with a
-	        // triangle are the interior(not boundary) edges
-	        // This means that the number of edges varies and is not a constant three
-            for(int e = 0; e < this->triangles[q].getEdges().size(); e++)
-            {
-	            // Let us get the right A value for the edge
-	            // The explanation on how to choose the correct A value is ^^ (two comments up)
-                // Remember that A is agnostic of the triangles positivity so it is fine
-	            // to check both the minus and plus free vertices
-	            // Also remember that the length of the edge was not multiplied in the calculateAAndphi function.
-	            // Only now is the pairing between the edge and the A value so it is imperative not to forget
-	            // to multiply by the length
-	            // The if statement conditions look quite messy, but remember that both the Edge and Triangle
-	            // classes only have indices to the other
-                Node a_pq;
-                if(this->triangles[q].getVertex1() == this->edges[this->triangles[q].getEdges()[e]].getPlusFreeVertex() ||
-                   this->triangles[q].getVertex1() == this->edges[this->triangles[q].getEdges()[e]].getMinusFreeVertex())
-                {
-                    a_pq = a_and_phi[0].getScalarMultiply(this->edges[this->triangles[q].getEdges()[e]].getLength());   
-                }
-
-                if(this->triangles[q].getVertex2() == this->edges[this->triangles[q].getEdges()[e]].getPlusFreeVertex() ||
-                   this->triangles[q].getVertex2() == this->edges[this->triangles[q].getEdges()[e]].getMinusFreeVertex())
-                {
-                    a_pq = a_and_phi[1].getScalarMultiply(this->edges[this->triangles[q].getEdges()[e]].getLength());   
-                }
-
-                if(this->triangles[q].getVertex3() == this->edges[this->triangles[q].getEdges()[e]].getPlusFreeVertex() ||
-                   this->triangles[q].getVertex3() == this->edges[this->triangles[q].getEdges()[e]].getMinusFreeVertex())
-                {
-                    a_pq = a_and_phi[2].getScalarMultiply(this->edges[this->triangles[q].getEdges()[e]].getLength());   
-                }
-
-		        // Lets create the variable Phi
-		        // Since C++ only supports the returning of one entity, Phi was inserted into a node
-		        // as the x coordinate
-		        // This is just a little workaround to get the value easily
-		        // As with A above, now that the edge is known it is important to remember to multiply
-		        // the recieved phi value by the edge length
-                std::complex<double> phi = a_and_phi[3].getXComplexCoord() * this->edges[this->triangles[q].getEdges()[e]].getLength();
-
-		        // Now lets check if the source triangle is a minus or plus triangle for the edge
-		        // This is checked using the plus/minus triangle index variable contained in the Edge
-		        // class
-                if(this->edges[this->triangles[q].getEdges()[e]].getMinusTriangleIndex() == q)
-                {
-		            // The triangle is a minus triangle for the edge
-		            // Lets multiply phi by -1 as shown in equation 33 in RWG80
-		            // Remember that phi is a complex number so it has to be multiplied
-		            // with another complex number
-		            // This does not always have to be done, but it is safer to do so
-		            // The compiler will sometimes throw a type exeption error if forgotten
-                    phi = phi * std::complex<double>(-1.0, 0);
-                }
-                else
-                {
-		            // The triangle is a plus triangle for the edge
-		            // Lets multiply a_pq with -1 as shown in equation 32 in RWG80
-		            // The getScalarMultiply member of the Node class is used for
-		            // easy scalar multiplication of a vector
-                    a_pq = a_pq.getScalarMultiply(-1.0);
-                }
-
-                for(int r = 0; r < this->triangles[p].getEdges().size(); r++)
-                {
-		            // Lets loop over the edges of the observation triangle
-		            // These edges will be the m index of the Zmn matrix
-                    // Lets first create two variables, one for rho_c
-		            // and another for the phi sign
-		            Node rho_c;
-                    double phi_sign;
-
-		            // Let us check whether the triangle is a plus or minus triangle for the edge
-		            // As noted above, remember that the classes Edge and Triangle only contain
-		            // indices to the other
-                    if(this->edges[this->triangles[p].getEdges()[r]].getMinusTriangleIndex() == p)
-                    {
-		                // The triangle is a minus triangle for the edge
-		                // Lets get the minus rho c node and assign it to rho_c
-		                // Lets also set the phi_sign to -1
-                        rho_c = this->edges[this->triangles[p].getEdges()[r]].getRhoCMinus();
-                        phi_sign = -1;
-                    }
-                    else
-                    {
-		                // The triangle is a plus triangle for the edge
-		                // Lets get the plus rho c node and assign it to rho_c
-		                // Lets also set the phi_sign to 1
-                        rho_c = this->edges[this->triangles[p].getEdges()[r]].getRhoCPlus();
-                        phi_sign = 1;
-                    }
-
-                    // Now that all the necessary values are assembled, lets fill in some
-		            // of the relevant entries of Zmn
-		            // The index n is from the source triangle and
-		            // the index m is from the observation triangle
-		            // It is necessary to remember that this is not the final Zmn value being
-		            // assigned, but only a piece of it contributed by the source and observation
-		            // triangles
-		            // The formula for the final Zmn value is found in equation 17 of RWG80
-		            // As just noted, since this is just a contribution to the final value
-		            // the formula needs to be tweaked as such
-		            // Zmn = Zmn + edge_length_of_observation_triangle *
-		            //             ((j * omega * A * rho_c / 2) - phi * phi_sign)
-                    this->z_mn[this->triangles[p].getEdges()[r]][this->triangles[q].getEdges()[e]] =
-                    this->z_mn[this->triangles[p].getEdges()[r]][this->triangles[q].getEdges()[e]] +
-                        this->edges[this->triangles[p].getEdges()[r]].getLength() *
-                            (this->j * 
-                            this->omega *
-                            a_pq.getDot(rho_c) / 
-                            std::complex<double>(2, 0) -
-                            phi * 
-                            phi_sign);  
-                }                   
-            } 
-        }
-    }
-    // Lets end the clock now
-    std::chrono::high_resolution_clock::time_point z_mn_time_end = std::chrono::high_resolution_clock::now();
-
-    // Lets get the duration for Zmn to fill
-    this->z_mn_timer.endTimer();
-
-    // Now lets do some time profiling 
-    this->z_mn_time = this->z_mn_timer.saveTime();
-    this->i_time = this->i_timer.saveTime();
-    this->a_phi_time = this->a_phi_timer.saveTime();
-
-    // for(int i = 0; i < this->edges.size(); i++)
-    // {
-    //     for (int j = 0; j < this->edges.size(); j++)
-    //     {
-    //         std::cout << z_mn[i][j] << " ";
-    //     }
-    //     std::cout << std::endl;
-    // }
-}
-
-void MoMSolver::calculateVrhsInternally()
+void MoMSolverMPI::calculateVrhsInternally()
 {
     // Lets calculate the Vrhs data internally
     // This wil just be for a nomally incident x-directed plane wave
@@ -308,7 +89,7 @@ void MoMSolver::calculateVrhsInternally()
     }
 }
 
-void MoMSolver::calculateJMatrix()
+void MoMSolverMPI::calculateJMatrix()
 {
     // Lets calcualte the I vector
     // LU-decomposition /w partial pivot
@@ -336,42 +117,231 @@ void MoMSolver::calculateJMatrix()
     }
 
     // Now lets solve for I
-    this->j_timer.startTimer();
     Eigen::VectorXcd i_lhs = m.partialPivLu().solve(v);
-    this->j_timer.endTimer();
 }
 
-void MoMSolver::timeProfiler(int num_iter)
+void MoMSolverMPI::calculateZmnByFaceMPI()
 {
-    double average_z_time = this->z_mn_time / (double)num_iter;
-    double average_i_time = this->i_time / (double)num_iter;
-    double average_a_time = this->a_phi_time / (double)num_iter;
-    double average_j_time = this->j_time / (double)num_iter;
 
-    std::cout << "Average Z time: " << average_z_time << std::endl;
-    std::cout << "Average A time: " << average_a_time << std::endl;
-    std::cout << "Average I time: " << average_i_time << std::endl;
-    std::cout << "Average J time: " << average_j_time << std::endl;
 
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
+    // Lets get the mpi rank and size
+    // rank -> which process is running
+    // size -> total number of processes 
+    int size;
+    int rank;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    std::cout << "Z time: " << average_z_time - average_a_time << std::endl;
-    std::cout << "A time: " << average_a_time - average_i_time << std::endl;
-    std::cout << "I time: " << average_i_time                  << std::endl;
+    // Lets load the quadrature weights and values for all processes
+    int num_quadrature_points = std::stoi(this->const_map["QUAD_PTS"]); 
+    this->quadrature_weights_values = getQuadratureWeightsAndValues(num_quadrature_points); 
+ 
 
+    // Lets assign the p values per process
+    // p is from 0 -> number_of_triangles
+    // Lets split up p as eqully as possible to the processes
+    // First lets declare a vector to store the p values
+    std::vector<int> sub_p_values;
+    int index;
+
+    // Now lets split up p
+    // The variable index is used as a starting point for th values to be split
+    // e.g. p is:
+    // 0 1 2 3 4 5 6 7 8 9
+    // and there are two processes
+    // so process 0 will get from 0 -> 4
+    // and process 1 will get from 5 -> 9
+    if(rank == 0)
+    {
+        for(int i = 0; i < this->numValuesMPI(size, rank, this->triangles.size()); i++)
+        {
+            sub_p_values.push_back(i);
+        }
+    }
+    else
+    {   
+        index = 0;
+        for(int i = 0; i < rank; i++)
+        {
+            index += this->numValuesMPI(size, i, this->triangles.size());
+        }
+        for(int i = index; i < this->numValuesMPI(size, rank, this->triangles.size()) + index; i++)
+        {
+            sub_p_values.push_back(i);
+        }
+    }
+
+    // Lets calculate all the portions of Zmn specified by the processes p values
+    std::vector<double> sub_zmn = this->workMPI(sub_p_values);
+    
+    // Lets gather all the vector sizes
+    // Lets first create a vector to store the sizes  
+    std::vector<int> proc_vector_size;
+    proc_vector_size.resize(size);
+
+    // Now lets get the size of sub_zmn for each process
+    int z_mn_size = sub_zmn.size();
+
+    // Now lets send them to the main process
+    MPI_Gather(&z_mn_size, 1, MPI_INT, &proc_vector_size[0], 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    // Now that the size of the data is available to the root process
+    // Lets gather all the data
+    // First lets define two vectors
+    // The first is to store the data
+    // The seconds is to store the displacements of the data
+    std::vector<double> all_zmn_data;
+    std::vector<int> disps;
+
+    // Lets resize the disps
+    disps.resize(size);
+
+    // Now lets fill in disps
+    for(int i = 0; i < size; i++)
+    {
+        if(i == 0)
+        {
+            // The first displacement is always 0
+            disps[i] = 0;
+        }
+        else
+        {
+            disps[i] = disps[i - 1] + proc_vector_size[i - 1];
+        }
+    }
+
+    // Lets resize all_zmn_data but just for the root process
+    if(rank == 0)
+    {
+        all_zmn_data.resize(disps[size - 1] + proc_vector_size[size - 1]);
+    }
+
+    // Lets now gather all the Zmn sub data into the main process
+    MPI_Gatherv(&sub_zmn[0], sub_zmn.size(), MPI_DOUBLE, &all_zmn_data[0],
+                 &proc_vector_size[0], &disps[0], MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    // Now lets fill all of Zmn
+    if(rank == 0)
+    {
+        // Lets resize the internal Zmn
+        std::vector<std::complex<double>> row_vector(this->edges.size(), 0);
+        this->z_mn = std::vector<std::vector<std::complex<double>>>(this->edges.size(), row_vector);
+
+        int index;
+        for(int i = 0; i < all_zmn_data.size() / 4; i++)
+        {
+            index = i * 4;
+            std::complex<double> temp(all_zmn_data[index + 2], all_zmn_data[index + 3]);
+            this->z_mn[(int)all_zmn_data[index]][(int)all_zmn_data[index + 1]] += temp; 
+        }
+        // for(int i = 0; i < this->edges.size(); i++)
+        // {
+        //     for(int j = 0; j < this->edges.size(); j++)
+        //     {
+        //         std::cout << this->z_mn[i][j];
+        //     }
+        //     std::cout << std::endl;
+        // }
+    }
 }
 
-std::vector<Node> MoMSolver::calculateAAndPhi(int p, int q)
+int MoMSolverMPI::numValuesMPI(int num_procs, int rank, int data_length)
+{
+    // Efficiently distribute work between processes
+    // https://stackoverflow.com/questions/5657158/how-to-distribute-a-vector-of-n-elements-across-p-processors
+
+    return (data_length + rank) / num_procs;
+}
+
+std::vector<double> MoMSolverMPI::workMPI(std::vector<int> p_values) // RENAME
+{
+    // See MoMSolverMPI::calculateZmnByFace() for full commentary
+
+    std::vector<double> partial_zmn;
+    for(int i = 0; i < p_values.size(); i++)
+    {
+        int p = p_values[i];
+
+        for(int q = 0; q < this->triangles.size(); q++)
+        {
+            std::vector<Node> a_and_phi = this->calculateAAndPhi(p, q);
+
+            for(int e = 0; e < this->triangles[q].getEdges().size(); e++)
+            {
+                Node a_pq;
+                if(this->triangles[q].getVertex1() == this->edges[this->triangles[q].getEdges()[e]].getPlusFreeVertex() ||
+                 this->triangles[q].getVertex1() == this->edges[this->triangles[q].getEdges()[e]].getMinusFreeVertex())
+                {
+                    a_pq = a_and_phi[0].getScalarMultiply(this->edges[this->triangles[q].getEdges()[e]].getLength());   
+                }
+
+                if(this->triangles[q].getVertex2() == this->edges[this->triangles[q].getEdges()[e]].getPlusFreeVertex() ||
+                 this->triangles[q].getVertex2() == this->edges[this->triangles[q].getEdges()[e]].getMinusFreeVertex())
+                {
+                    a_pq = a_and_phi[1].getScalarMultiply(this->edges[this->triangles[q].getEdges()[e]].getLength());   
+                }
+
+                if(this->triangles[q].getVertex3() == this->edges[this->triangles[q].getEdges()[e]].getPlusFreeVertex() ||
+                 this->triangles[q].getVertex3() == this->edges[this->triangles[q].getEdges()[e]].getMinusFreeVertex())
+                {
+                    a_pq = a_and_phi[2].getScalarMultiply(this->edges[this->triangles[q].getEdges()[e]].getLength());   
+                }
+
+                std::complex<double> phi = a_and_phi[3].getXComplexCoord() * this->edges[this->triangles[q].getEdges()[e]].getLength();
+
+                if(this->edges[this->triangles[q].getEdges()[e]].getMinusTriangleIndex() == q)
+                {
+                    phi = phi * std::complex<double>(-1.0, 0);
+                }
+                else
+                {
+                    a_pq = a_pq.getScalarMultiply(-1.0);
+                }
+
+                for(int r = 0; r < this->triangles[p].getEdges().size(); r++)
+                {
+                    Node rho_c;
+                    double phi_sign;
+
+                    if(this->edges[this->triangles[p].getEdges()[r]].getMinusTriangleIndex() == p)
+                    {
+                        rho_c = this->edges[this->triangles[p].getEdges()[r]].getRhoCMinus();
+                        phi_sign = -1;
+                    }
+                    else
+                    {
+                        rho_c = this->edges[this->triangles[p].getEdges()[r]].getRhoCPlus();
+                        phi_sign = 1;
+                    }
+
+                    partial_zmn.push_back(this->triangles[p].getEdges()[r]);
+                    partial_zmn.push_back(this->triangles[q].getEdges()[e]);
+
+                    std::complex<double> temp_zmn_value = 
+                    this->edges[this->triangles[p].getEdges()[r]].getLength() *
+                    (this->j * 
+                        this->omega *
+                        a_pq.getDot(rho_c) / 
+                        std::complex<double>(2, 0) -
+                        phi * 
+                        phi_sign);
+                    partial_zmn.push_back(temp_zmn_value.real());  
+                    partial_zmn.push_back(temp_zmn_value.imag());  
+                }                   
+            } 
+        }
+    }
+
+    return partial_zmn;
+}
+
+std::vector<Node> MoMSolverMPI::calculateAAndPhi(int p, int q)
 {
     // Lets calculate the magnetic vector potential and the scalar potential
     // The formulae are equations 32 and 33 in RWG80
     // First, lets get the four I's calculated in calculateIpq 
     // Remember, the vector is ordered in [Ipq Ipq_xi Ipq_eta Ipq_zeta]
-    this->i_timer.startTimer();
     std::vector<std::complex<double>> i_vector = this->calculateIpq(p, q);
-    this->i_timer.endTimer();
 
     // There are three values for the magnetic vector potential (Apq) and one for the scalar
     // potential(Phipq)
@@ -440,7 +410,7 @@ std::vector<Node> MoMSolver::calculateAAndPhi(int p, int q)
     return  a_and_phi_vector;
 }
 
-std::vector<std::complex<double>> MoMSolver::calculateIpq(int p, int q)
+std::vector<std::complex<double>> MoMSolverMPI::calculateIpq(int p, int q)
 {
     // Lets calculate the 4 Ipq integrals(equations 34a-d in RWG80)
     // The first three(a-c) will be calculated using numerical quadrature
