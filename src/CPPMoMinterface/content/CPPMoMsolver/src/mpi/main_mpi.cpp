@@ -19,7 +19,8 @@
 
 int main()
 {
-    MPI_Init(NULL, NULL);
+    int provided;
+    MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &provided);
 
     int size;
     int rank;
@@ -44,28 +45,8 @@ int main()
         std::cout << "The MPI ZMN TIME: " << std::endl;
         t.printTime();
 
-        solver.calculateVrhsInternally();
-        solver.calculateJMatrix();
-    }
-
-    // OpenMP Test
-    if(rank == 0)
-    {
-        int n;
-        int id;
-
-        omp_set_num_threads(4);
-        #pragma omp parallel private(n, id)
-        {
-            id = omp_get_thread_num();
-            std::cout << "Thread no: " << id << std::endl;
-
-            if(id == 0)
-            {
-                n = omp_get_num_threads();
-                std::cout << "Num threads: " << n << std::endl;
-            }
-        } 
+        //solver.calculateVrhsInternally();
+        //solver.calculateJMatrix();
     }
 
     MPI_Finalize();

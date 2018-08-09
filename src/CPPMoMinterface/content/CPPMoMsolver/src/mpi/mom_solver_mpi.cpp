@@ -35,6 +35,9 @@ MoMSolverMPI::MoMSolverMPI(std::vector<Node> nodes,
     this->k = 2 * M_PI / this->lambda;
     std::complex<double> complex_constant(0, 1);
     this->j = complex_constant;
+
+
+    this->num_threads = 6;
 }
 
 void MoMSolverMPI::calculateVrhsInternally()
@@ -376,7 +379,8 @@ std::vector<Node> MoMSolverMPI::calculateAAndPhi(int p, int q)
     std::vector<Node> a_and_phi_vector;
     a_and_phi_vector.resize(4);
 
-
+    omp_set_num_threads(this->num_threads);
+    #pragma omp parallel for
     for(int i = 0; i < 3; i++)
     {
         Node a_pq_node_1 = this->nodes[this->triangles[q].getVertex1()].getScalarMultiply(i_vector[1]);
@@ -432,6 +436,8 @@ std::vector<std::complex<double>> MoMSolverMPI::calculateIpq(int p, int q)
         std::vector<std::complex<double>> Ipq_xi_vector(this->quadrature_weights_values.size());
         std::vector<std::complex<double>> Ipq_eta_vector(this->quadrature_weights_values.size());
 
+        omp_set_num_threads(this->num_threads);
+        #pragma omp parallel for
         for(int i = 0; i < this->quadrature_weights_values.size(); i++)
         {
             Node xi_r_1 = this->nodes[this->triangles[q].getVertex1()].getScalarMultiply(this->quadrature_weights_values[i][1]); 

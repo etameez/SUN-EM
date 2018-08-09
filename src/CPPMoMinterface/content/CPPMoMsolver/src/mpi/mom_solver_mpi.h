@@ -12,6 +12,7 @@
 #include <Eigen/Dense>
 #include <fstream>
 #include <mpi.h>
+#include <omp.h>
 #include "../node.h"
 #include "../edge.h"
 #include "../triangle.h"
@@ -51,6 +52,8 @@ class MoMSolverMPI
 
         std::vector<Node> calculateAAndPhi(int p, int q);
         std::vector<std::complex<double>> calculateIpq(int p, int q);
+
+        int num_threads;
 
 };
 #endif
