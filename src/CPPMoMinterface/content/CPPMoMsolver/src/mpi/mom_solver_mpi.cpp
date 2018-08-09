@@ -71,7 +71,7 @@ void MoMSolverMPI::calculateJMatrix()
         for(int j = 0; j < this->edges.size(); j++)
         {
             m(i, j) = this->z_mn[i][j];
-        }
+         }
     }
 
     Eigen::VectorXcd v(this->edges.size());
@@ -84,6 +84,11 @@ void MoMSolverMPI::calculateJMatrix()
 
     // Now lets solve for I
     Eigen::VectorXcd i_lhs = m.partialPivLu().solve(v);
+
+    for(int i = 0; i < i_lhs.size(); i++)
+    {
+        std::cout << i_lhs(i) << std::endl;
+    }
 }
 
 void MoMSolverMPI::calculateZmnByFaceMPI()
@@ -189,13 +194,8 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
     // Lets first create a vector to store the sizes 
     // It is important to remember to resize the vector
     // The space needs to be allocated for MPI to write the value into
-    // Only root is going to receive the data so it only needs to be allocated there
-    // TODO the resize nedds to only happen in root. Check to make sure 
     std::vector<int> proc_vector_size;
-    if(rank == 0)
-    {
-        proc_vector_size.resize(size);
-    }
+    proc_vector_size.resize(size);
 
     // Now lets get the size of sub_zmn for each process
     int z_mn_size = sub_zmn.size();

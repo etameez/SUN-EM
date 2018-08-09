@@ -42,13 +42,11 @@ int main()
         t.endTimer();
         std::cout << "The MPI ZMN TIME: " << std::endl;
         t.printTime();
-        std::cout << std::endl << std::endl;
 
         solver.calculateVrhsInternally();
         solver.calculateJMatrix();
     }
 
     MPI_Finalize();
-  
     return 0;
 }
