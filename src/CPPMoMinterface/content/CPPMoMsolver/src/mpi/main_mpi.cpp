@@ -3,9 +3,8 @@
  *   \brief C++ MoM Solver Entrypoint
  *
  *  Detailed description
- *  The entrypoint for a MoM solver. This will be used to read the .mom
- *  file that is created by MATLAB. This is standalone and serves as an
- *  alternative to the mex file.
+ *  The entrypoint for a MoM solver that will be ran in parallel using MPI and OpenMP
+ *  This will be used to read the .mom file that is created by MATLAB.
  *
  *  Author:    Tameez Ebrahim
  *  Created:   25 July 2018 
