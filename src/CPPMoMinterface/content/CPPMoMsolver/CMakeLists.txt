@@ -8,7 +8,10 @@ include_directories("lib/eigen/")
 option(MPI "Compile with MPI" OFF)
 if(MPI)
     MESSAGE("COMPILING WITH MPI")
+
     find_package(MPI REQUIRED)
+    find_package(OpenMP REQUIRED)
+    
     include_directories(${MPI_INCLUDE_PATH})
     set(SOURCES src/edge.cpp
                 src/mom_data.cpp
@@ -22,7 +25,8 @@ if(MPI)
                 src/mpi/main_mpi.cpp
                 src/mpi/mom_solver_mpi.cpp)
     add_executable(mom_mpi ${SOURCES})
-    target_link_libraries(mom_mpi ${MPI_LIBRARIES})
+    target_link_libraries(mom_mpi ${MPI_LIBRARIES}
+                                    OpenMP::OpenMP_CXX)
 else()
     MESSAGE("COMPILING WITHOUT MPI")
     file(GLOB SOURCES "src/*.cpp")

@@ -15,6 +15,7 @@
 #include "mom_solver_mpi.h"
 #include "../timer.h"
 #include <mpi.h>
+#include <omp.h>
 
 int main()
 {
@@ -45,6 +46,26 @@ int main()
 
         solver.calculateVrhsInternally();
         solver.calculateJMatrix();
+    }
+
+    // OpenMP Test
+    if(rank == 0)
+    {
+        int n;
+        int id;
+
+        omp_set_num_threads(4);
+        #pragma omp parallel private(n, id)
+        {
+            id = omp_get_thread_num();
+            std::cout << "Thread no: " << id << std::endl;
+
+            if(id == 0)
+            {
+                n = omp_get_num_threads();
+                std::cout << "Num threads: " << n << std::endl;
+            }
+        } 
     }
 
     MPI_Finalize();
