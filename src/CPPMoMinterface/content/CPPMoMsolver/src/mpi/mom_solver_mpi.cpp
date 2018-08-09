@@ -370,7 +370,11 @@ std::vector<Node> MoMSolverMPI::calculateAAndPhi(int p, int q)
 
     std::vector<std::complex<double>> i_vector = this->calculateIpq(p, q);
 
+    // Lets make this compatible with OpenMP
+    // To do this, lets make the for loop independent
+    // Lets first resize the vector to accomodate(sp?) the values
     std::vector<Node> a_and_phi_vector;
+    a_and_phi_vector.resize(4);
 
 
     for(int i = 0; i < 3; i++)
@@ -386,7 +390,7 @@ std::vector<Node> MoMSolverMPI::calculateAAndPhi(int p, int q)
 
         double a_pq_multiplier = std::stod(this->const_map["MU_0"]) / (4 * M_PI);                
         a_pq_node = a_pq_node.getScalarMultiply(a_pq_multiplier);
-        a_and_phi_vector.push_back(a_pq_node);
+        a_and_phi_vector[i] = (a_pq_node);
     }
 
     std::complex<double> phi_pq_multiplier = std::complex<double>(1, 0) / 
@@ -398,7 +402,7 @@ std::vector<Node> MoMSolverMPI::calculateAAndPhi(int p, int q)
     std::complex<double> phi_pq = i_vector[0] * phi_pq_multiplier;
 
     Node phi_pq_node(phi_pq, 0, 0);
-    a_and_phi_vector.push_back(phi_pq_node);    
+    a_and_phi_vector[3] = phi_pq_node;    
 
     return  a_and_phi_vector;
 }
@@ -423,6 +427,11 @@ std::vector<std::complex<double>> MoMSolverMPI::calculateIpq(int p, int q)
         std::complex<double> Ipq_eta;    // RWG80 34c
         std::complex<double> Ipq_zeta;   // RWG80 34d
 
+        // Lets make this independant for OpenMP
+        std::vector<std::complex<double>> Ipq_vector(this->quadrature_weights_values.size());
+        std::vector<std::complex<double>> Ipq_xi_vector(this->quadrature_weights_values.size());
+        std::vector<std::complex<double>> Ipq_eta_vector(this->quadrature_weights_values.size());
+
         for(int i = 0; i < this->quadrature_weights_values.size(); i++)
         {
             Node xi_r_1 = this->nodes[this->triangles[q].getVertex1()].getScalarMultiply(this->quadrature_weights_values[i][1]); 
@@ -436,15 +445,22 @@ std::vector<std::complex<double>> MoMSolverMPI::calculateIpq(int p, int q)
 
             std::complex<double> greens_function = std::exp(std::complex<double>(-1.0, 0) * this->j * this->k * R_p) / R_p;
 
-            Ipq = Ipq + (std::complex<double>(0.5,0) * this->quadrature_weights_values[i][0] * greens_function);  
+            Ipq_vector[i] = (std::complex<double>(0.5,0) * this->quadrature_weights_values[i][0] * greens_function);  
                
-            Ipq_xi = Ipq_xi + (std::complex<double>(0.5,0) * this->quadrature_weights_values[i][0] * 
-                               this->quadrature_weights_values[i][1] * 
-                               greens_function);
+            Ipq_xi_vector[i] = (std::complex<double>(0.5,0) * this->quadrature_weights_values[i][0] * 
+                                    this->quadrature_weights_values[i][1] * 
+                                    greens_function);
 
-            Ipq_eta = Ipq_eta + (std::complex<double>(0.5,0) * this->quadrature_weights_values[i][0] * 
-                                 this->quadrature_weights_values[i][2] * 
-                                 greens_function);  
+            Ipq_eta_vector[i] = (std::complex<double>(0.5,0) * this->quadrature_weights_values[i][0] * 
+                                    this->quadrature_weights_values[i][2] * 
+                                    greens_function);  
+        }
+
+        for(int i = 0; i < this->quadrature_weights_values.size(); i++)
+        {
+            Ipq     += Ipq_vector[i];
+            Ipq_xi  += Ipq_xi_vector[i];
+            Ipq_eta += Ipq_eta_vector[i];
         }
 
         Ipq_zeta = Ipq - Ipq_xi - Ipq_eta;
