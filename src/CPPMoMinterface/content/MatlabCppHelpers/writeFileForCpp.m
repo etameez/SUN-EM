@@ -32,7 +32,7 @@ function [] = writeFileForCpp(Const, FEKO_data, yVectors)
     % Open file
     % --------------------------------
     file_name = [Const.OutputDirName '.mom'];
-    fid = fopen(file_name, 'a');
+    fid = fopen(file_name, 'w');
     
     if fid == -1
         disp(['Error: cannot open or create file ' file_name]);
@@ -75,9 +75,19 @@ function [] = writeFileForCpp(Const, FEKO_data, yVectors)
         % --------------------------------
         % Write Co-ordinates of the Nodes
         % --------------------------------
+        count = 0;
+        for i = 1:length(FEKO_data.nodes_xyz)
+            if ~isnan(FEKO_data.nodes_xyz(i, 1))
+                count = count + 1;
+                pop = FEKO_data.nodes_xyz(i, 1);
+            else
+                crackle = FEKO_data.nodes_xyz(i, 1);
+            end
+        end
         
         fprintf(fid, 'NODES START\n');
-        fprintf(fid, '%-20s\t\t%d\n', 'NUM_NODES', length(FEKO_data.nodes_xyz));
+        %fprintf(fid, '%-20s\t\t%d\n', 'NUM_NODES', length(FEKO_data.nodes_xyz));
+        fprintf(fid, '%-20s\t\t%d\n', 'NUM_NODES', count);
         fprintf(fid, '%s\t\t%s\t\t%s\n', 'X_COORD', 'Y_COORD', 'Z_COORD');
         
         for i = 1:length(FEKO_data.nodes_xyz)
