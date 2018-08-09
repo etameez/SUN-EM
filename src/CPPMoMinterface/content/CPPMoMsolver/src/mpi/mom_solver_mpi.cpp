@@ -6,10 +6,12 @@
  *
  *  Detailed description
  *  This class will first solve for Zmn using a face pair approach. Then Vm = ZmnIn will be solved
- *  for In using LU decomposition on Zmn. 
+ *  for In using LU decomposition on Zmn. This is the parallel implementation. For more detailed 
+ *  comments see the serial implementation. The comments in this file will mostly focus on the 
+ *  parallel commands. 
  *
  *  Author:  Tameez Ebrahim
- *  Created: 27 July 2018
+ *  Created: 09 August 2018 
  *
  */
 
@@ -19,9 +21,6 @@ MoMSolverMPI::MoMSolverMPI(std::vector<Node> nodes,
                      std::vector<double> vrhs,
                      std::map<std::string, std::string> const_map)
 {
-    // This is the constructor for the MoMSolver class
-    // It assigns the arguments to internal variables and also declares some constants
-  
     this->nodes = nodes;
     this->triangles = triangles;
     this->edges = edges;
@@ -29,44 +28,11 @@ MoMSolverMPI::MoMSolverMPI(std::vector<Node> nodes,
     this->const_map = const_map;
 
     // Lets define some constants
-    // All the constants are given, or calculated by those given in the const_map
-    // Remember that this data is from the .mom file so it would be wise to rather
-    // change the initial variables there than here in the code
-    // Also note that const_map is of type std::map<std::string, std::string>
-    // so all values need to be converted 
-    // Lets start by getting the speed of light
     this->c = std::stod(this->const_map["C0"]);
-
-    // Then lets get the frequency
-    // There are three frequency values in the const_map
-    // freqStart, freqEnd and freqData
-    // The one needed is freqData
     this->frequency = std::stod(this->const_map["freqData"]);
-
-    // Lets get omega(w)
-    // This is used in equations 17 and 33 of RWG80
-    // The formula for w is w = 2 * pi * frequency
-    // Note that pi is called as M_PI from the <cmath> library
-    // The math library naming is quite strange so it is necessary
-    // to remember that <cmath> is for C++ while <math> is for C
-    // If M_PI happens to not work add #define _USE_MATH_DEFINES before <cmath>
-    // in mom_solver.h
     this->omega = 2 * M_PI * this->frequency;
-
-    // Lets get lambda
-    // This lambda is not to be confused with the lambdas used in the quadrature step
-    // The formula for lambda is lambda = speed of light / frequency
     this->lambda = this->c / this->frequency;
-
-    // Then lets get k(propagation constant)
-    // The formula for k is k = 2 * pi / lambda
-    // If there is an issue with M_PI, see the comment on omega for details
     this->k = 2 * M_PI / this->lambda;
-
-    // Lets finally define j(sqrt(-1)), the imaginary constant
-    // j is synonymous with i in MATLAB
-    // Currently, I can't find if <complex> defines it
-    // So, lets set j as 0 + 1i
     std::complex<double> complex_constant(0, 1);
     this->j = complex_constant;
 }
@@ -122,7 +88,25 @@ void MoMSolverMPI::calculateJMatrix()
 
 void MoMSolverMPI::calculateZmnByFaceMPI()
 {
-
+    // A quick explanation of MPI
+    // Say there are 4 processes numbered 0, 1, 2, 3
+    // They all run in parallel, i.e. at the same time
+    // Process 0 is also called the root or master process
+    // Each of these processes are independent of the other
+    // Imagine it as each process is running on a different computer
+    // This means that nothing is explicitly shared between them
+    // They however can communicate using MPI
+    // Hence the name Message Passing Interface
+    // There are two methods to pass messages, blocking and non-blocking
+    // This function uses blocking and so it will be explained here
+    // Blocking means that the process will wait for the message to be sent or received
+    // before continuing. Lets see an example
+    // Say MPI_Recv(some args here) is used. The process that is receiving the message will not
+    // do anything until it gets the message. This allows for easier program flow
+    // For improved performance, non-blocking can be used but it is not viable for this
+    // application.
+    // The integral send/receive functions that will be used here are MPI_Gather() and MPI_Gatherv
+    // They will be explained below as used
 
     // Lets get the mpi rank and size
     // rank -> which process is running
@@ -133,15 +117,28 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     // Lets load the quadrature weights and values for all processes
+    // Remember that each process has its own copy of this and most following
+    // declarations. If something is restricted, it will be enclosed by an
+    // if-statement. So, for example, 
+    // if(rank == some_process)
+    // {
+    //      Do something only in process some_process
+    // }
+    // It is important to remember this as it sometimes can be confusing
+    // when trying to access something not available in the process
     int num_quadrature_points = std::stoi(this->const_map["QUAD_PTS"]); 
     this->quadrature_weights_values = getQuadratureWeightsAndValues(num_quadrature_points); 
  
-
     // Lets assign the p values per process
     // p is from 0 -> number_of_triangles
     // Lets split up p as eqully as possible to the processes
-    // First lets declare a vector to store the p values
+    // First lets declare a vector to store a portion of the p values
+    // relevant to the process
     std::vector<int> sub_p_values;
+
+    // Lets also declare an index
+    // This will help divide the total p values into it's smaller
+    // sub_p_values
     int index;
 
     // Now lets split up p
@@ -151,8 +148,20 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
     // and there are two processes
     // so process 0 will get from 0 -> 4
     // and process 1 will get from 5 -> 9
+    // In the above example index == 0 for process 0 and index == 5 for process 1
+    // One might be wondering why the following is executed in all processes and not just
+    // root and then sent to the relevant proccesses.
+    // Besides the memory requirement, MPI's main overhead comes from the sending and receiving
+    // of messages. None of the processes can do anything until they receive the information so they
+    // will be idle due to blocking. It is therefore faster for each process to calculate the 
+    // relevant p_values they will have to use.
+    // This is made possible by the fact the p is linear and sequential.
+    // If p was, for example, a list of random values (0, 82, 3, 4, ...) then it would need
+    // to be sent
     if(rank == 0)
     {
+        // The index does not need used here since process 0 will always start at index == 0
+        // The number of values allocated to the process is determined by numValuesMPI
         for(int i = 0; i < this->numValuesMPI(size, rank, this->triangles.size()); i++)
         {
             sub_p_values.push_back(i);
@@ -160,6 +169,8 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
     }
     else
     {   
+        // It gets a bit more complex here since non root processes need to calculate
+        // how many p_values were sent to the preceeding processes and set the index accordingly
         index = 0;
         for(int i = 0; i < rank; i++)
         {
@@ -175,14 +186,23 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
     std::vector<double> sub_zmn = this->workMPI(sub_p_values);
     
     // Lets gather all the vector sizes
-    // Lets first create a vector to store the sizes  
+    // Lets first create a vector to store the sizes 
+    // It is important to remember to resize the vector
+    // The space needs to be allocated for MPI to write the value into
+    // Only root is going to receive the data so it only needs to be allocated there
+    // TODO the resize nedds to only happen in root. Check to make sure 
     std::vector<int> proc_vector_size;
-    proc_vector_size.resize(size);
+    if(rank == 0)
+    {
+        proc_vector_size.resize(size);
+    }
 
     // Now lets get the size of sub_zmn for each process
     int z_mn_size = sub_zmn.size();
 
     // Now lets send them to the main process
+    // This is important because to receive the actual data, MPI needs to be told
+    // how many values it has to receive.
     MPI_Gather(&z_mn_size, 1, MPI_INT, &proc_vector_size[0], 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     // Now that the size of the data is available to the root process
@@ -249,7 +269,6 @@ int MoMSolverMPI::numValuesMPI(int num_procs, int rank, int data_length)
 {
     // Efficiently distribute work between processes
     // https://stackoverflow.com/questions/5657158/how-to-distribute-a-vector-of-n-elements-across-p-processors
-
     return (data_length + rank) / num_procs;
 }
 
@@ -314,9 +333,14 @@ std::vector<double> MoMSolverMPI::workMPI(std::vector<int> p_values) // RENAME
                         phi_sign = 1;
                     }
 
+                    // This is the only difference between the serial implentation
+                    // The indices of the partial Zmn value needs to be returned aswell
+                    // so the main process knows where to put it
+                    // Therefore, lets first push the indices to the vector
                     partial_zmn.push_back(this->triangles[p].getEdges()[r]);
                     partial_zmn.push_back(this->triangles[q].getEdges()[e]);
 
+                    // Now lets calculate the partial Zmn value
                     std::complex<double> temp_zmn_value = 
                     this->edges[this->triangles[p].getEdges()[r]].getLength() *
                     (this->j * 
@@ -325,6 +349,10 @@ std::vector<double> MoMSolverMPI::workMPI(std::vector<int> p_values) // RENAME
                         std::complex<double>(2, 0) -
                         phi * 
                         phi_sign);
+
+                    // It is important to remember that MPI does not natively support complex values
+                    // Therefore, it is necessary to seperate them into their real and imaginary
+                    // parts and push them individually
                     partial_zmn.push_back(temp_zmn_value.real());  
                     partial_zmn.push_back(temp_zmn_value.imag());  
                 }                   
@@ -337,73 +365,38 @@ std::vector<double> MoMSolverMPI::workMPI(std::vector<int> p_values) // RENAME
 
 std::vector<Node> MoMSolverMPI::calculateAAndPhi(int p, int q)
 {
-    // Lets calculate the magnetic vector potential and the scalar potential
-    // The formulae are equations 32 and 33 in RWG80
-    // First, lets get the four I's calculated in calculateIpq 
-    // Remember, the vector is ordered in [Ipq Ipq_xi Ipq_eta Ipq_zeta]
+    // The full commentary can be found in the serial implementation
+    // The file is mom_solver.cpp in the src/ directory
+
     std::vector<std::complex<double>> i_vector = this->calculateIpq(p, q);
 
-    // There are three values for the magnetic vector potential (Apq) and one for the scalar
-    // potential(Phipq)
-    // Remember, from calculateIpq, r1 -> vertex_1, r2 -> vertex_2 and r3 -> vertex_3
-    // Lets first create the return vector
     std::vector<Node> a_and_phi_vector;
 
-    // Lets loop over the three triangle vertices
+
     for(int i = 0; i < 3; i++)
     {
-        // Lets do the multiplication of the r's by the I's
-        // It's a bit messy with needing to create a new node for each multiplication 
-        // r1 * I_xi        -> a_pq_node_1 
-        // r2 * I_eta       -> a_pq_node_2
-        // r3 * I_zeta      -> a_pq_node_3
-        // ri * I           -> a_pq_node_4
         Node a_pq_node_1 = this->nodes[this->triangles[q].getVertex1()].getScalarMultiply(i_vector[1]);
         Node a_pq_node_2 = this->nodes[this->triangles[q].getVertex2()].getScalarMultiply(i_vector[2]);
         Node a_pq_node_3 = this->nodes[this->triangles[q].getVertex3()].getScalarMultiply(i_vector[3]);
         Node a_pq_node_4 = this->nodes[this->triangles[q].getVertices()[i]].getScalarMultiply(i_vector[0]);
 
-        // Now lets add the four terms together
-        // Again, it is quite messy
         Node a_pq_node = a_pq_node_1.getAddNode(a_pq_node_2);
         a_pq_node = a_pq_node.getAddNode(a_pq_node_3);
         a_pq_node = a_pq_node.getSubtractComplexNode(a_pq_node_4);
 
-        
-        // Now lets multiply the added nodes by mu / 4pi
-        // Remember that the length is not multiplied yet
         double a_pq_multiplier = std::stod(this->const_map["MU_0"]) / (4 * M_PI);                
         a_pq_node = a_pq_node.getScalarMultiply(a_pq_multiplier);
         a_and_phi_vector.push_back(a_pq_node);
     }
 
-    // Lets create the multiplier for phi_pq
-    // The formula is in equation 33 in RWG80
-    // Remember that the edge length is not multiplied yet since the edge is unknown
-    // The formula is 1 / (j * 2 * pi * omega * epsilon_0)
-    // The compiler sometimes throws type exeption errors so it is necessary to
-    // cnvert pi and 2 into complex values
-    // If there is a problem with using M_PI, the solution is in the constructor
     std::complex<double> phi_pq_multiplier = std::complex<double>(1, 0) / 
                                             (this->j * std::complex<double>(2.0, 0) * 
                                             std::complex<double>(M_PI, 0) *
                                             this->omega *
                                             std::stod(this->const_map["EPS_0"])); 
     
-    // Now lets multiply the multiplier with Ipq as shown in RWG80
     std::complex<double> phi_pq = i_vector[0] * phi_pq_multiplier;
 
-    // C++ does not support multiple return values
-    // A solution to this is to pass a pointer to the function and change its value
-    // This seems a bit out of place considering the flow of the rest of the code
-    // so a different approach will be used
-    // The return type of the function is std::vector<Node>
-    // It is therefore easy to decide to just convert the phi_pq value to a node
-    // This is done below
-    // It is important to remember that phi_pq is NOT a node, but just a complex
-    // value masquerading as one to get out of the function
-    // It is therefore necessary to account for this when calling the function
-    // to avoid any nasty suprises
     Node phi_pq_node(phi_pq, 0, 0);
     a_and_phi_vector.push_back(phi_pq_node);    
 
@@ -412,17 +405,12 @@ std::vector<Node> MoMSolverMPI::calculateAAndPhi(int p, int q)
 
 std::vector<std::complex<double>> MoMSolverMPI::calculateIpq(int p, int q)
 {
-    // Lets calculate the 4 Ipq integrals(equations 34a-d in RWG80)
-    // The first three(a-c) will be calculated using numerical quadrature
-    // The final one(d) is calculated from the first three
-    // p and q, the triangle indices are the only arguments needed
-    // All the other parameters are specified in const_map
-    // If p == q, then singularity treatment may be applied
-    // This is defined in const_map whether to use the singularity treatment or not
+    // The full commentary can be found in the serial implementation
+    // The file is mom_solver.cpp in the src/ directory
+
     std::vector<std::complex<double>> i_vector;
 
 
-    // Lets start by checking for a singularity(p == q)
     if(p == 19823) // TODO change to p == q && SING == True
     {
         // TODO Add singularity treatment
@@ -430,27 +418,13 @@ std::vector<std::complex<double>> MoMSolverMPI::calculateIpq(int p, int q)
     }
     else
     {
-        // Now lets calculate the four I's using numerical quadrature
-        // Remember that the weights and values for quadrature are already stored in 
-        // quadrature_weights_values
-        // It is of the form [weight lambda_1 lambda_2 lambda_3]
-        // with the number of rows equalling the number of quadrature points
-
-        // First lets create the four I's
-        // Remember that they are complex
         std::complex<double> Ipq;        // RWG80 34a
         std::complex<double> Ipq_xi;     // RWG80 34b
         std::complex<double> Ipq_eta;    // RWG80 34c
         std::complex<double> Ipq_zeta;   // RWG80 34d
 
-        // Now lets loop over the quadrature points
         for(int i = 0; i < this->quadrature_weights_values.size(); i++)
         {
-            // Lets first get r' as noted in equation 30 in RWG80
-            // So, it is [xi * vertex_1, eta * vertex_2, zeta * vertex_3]  
-            // xi_r_1       -> xi * r1
-            // eta_r_2      -> eta * r2
-            // zeta_r_3     -> zeta * r3
             Node xi_r_1 = this->nodes[this->triangles[q].getVertex1()].getScalarMultiply(this->quadrature_weights_values[i][1]); 
             Node eta_r_2 = this->nodes[this->triangles[q].getVertex2()].getScalarMultiply(this->quadrature_weights_values[i][2]); 
             Node zeta_r_3 = this->nodes[this->triangles[q].getVertex3()].getScalarMultiply(this->quadrature_weights_values[i][3]);
@@ -458,29 +432,10 @@ std::vector<std::complex<double>> MoMSolverMPI::calculateIpq(int p, int q)
             Node r_prime = xi_r_1.getAddNode(eta_r_2);
             r_prime = r_prime.getAddNode(zeta_r_3); 
 
-            // Now, lets get Rp as noted in equation 27 in RWG80
-            // C++ doesn't have an easy way to take the norm of a vector
-            // Lets do it manually from the node class
-            // Here is Rp = norm(triangle_centre - r_prime)
             double R_p = this->triangles[p].getCentre().getDifferenceBetween(r_prime).getNorm();
 
-            // Now lets get Greens function
-            // That is, Green = (e^(-j*k*R_p)) / R_p
-            // Remeber that the imaginary unit 'j' is defined as this->j
-	        // This is noted in as the common term in equations 34a-d in RWG80
             std::complex<double> greens_function = std::exp(std::complex<double>(-1.0, 0) * this->j * this->k * R_p) / R_p;
 
-            // Finally, lets calculate three  of the four I's
-	        // These equations are the same as equations 34a-d in RWG80
-	        // The numerical quadrature rule for a triangular domain is
-	        // I = area * sum<num_quadrature_components>(wi (lambda_1, lambda_2, lambda_3))
-	        // It is important not to confuse theses lambdas with the single lambda defined
-	        // in the constructor
-	        // It is easily noticed that no area value is being multiplied in the instances below.
-	        // The local coordinate system is being used as noted in equation 28 in RWG80 so the
-	        // area referred to in the quadrature formula is equal to 1
-	        // It is also important to note that while not defined in the formula, w needs to be normalised
-	        // This is done by w = 0.5 * w
             Ipq = Ipq + (std::complex<double>(0.5,0) * this->quadrature_weights_values[i][0] * greens_function);  
                
             Ipq_xi = Ipq_xi + (std::complex<double>(0.5,0) * this->quadrature_weights_values[i][0] * 
@@ -492,7 +447,6 @@ std::vector<std::complex<double>> MoMSolverMPI::calculateIpq(int p, int q)
                                  greens_function);  
         }
 
-        // Lets calculate the final I and push to the vector
         Ipq_zeta = Ipq - Ipq_xi - Ipq_eta;
         i_vector.push_back(Ipq);
         i_vector.push_back(Ipq_xi);
