@@ -14,35 +14,19 @@
 
 #include "mom_file_reader.h"
 #include "mom_solver.h"
-#include <Eigen/Dense>
-using Eigen::MatrixXd;
+#include "timer.h"
 
 int main()
 {
-  // std::string path = "/home/tameez/Dropbox/pec_plate.mom";
-  // std::string path = "C:\\Users\\Tameez\\Dropbox\\pec_plate.mom";
-  std::string path = "/Users/tameez/Dropbox/pec_plate.mom";
-  MoMFileReader reader(path);
-  MoMSolver solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
-  solver.calculateZmnByFace();
-  solver.calculateVrhsInternally();
-  solver.calculateJMatrix();
+    std::string path = "../../../../../examples/example-10/pec_plate.mom";
+    MoMFileReader reader(path); 
+    MoMSolver solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
+
+    solver.calculateZmnByFace();
+    solver.calculateVrhsInternally();
+    solver.calculateJMatrix();
+    solver.timeProfiler(1);
+
   
-
-  // for(int i = 0; i < 1000; i++)
-  // { 
-  //   solver.calculateZmnByFace();
-  // }
-
-  solver.timeProfiler(1);
-
-
-  // Eigen test
-  // MatrixXd m(2,2);
-  // m(0,0) = 3;
-  // m(1,0) = 2.5;
-  // m(0,1) = -1;
-  // m(1,1) = m(1,0) + m(0,1);
-  // std::cout << m << std::endl;
-  return 0;
+    return 0;
 }
