@@ -11,7 +11,7 @@
 % --------------------------------------------------------------------------------------------------
 % Project output directory: './dipoles/'
 % Debug: True/False
-Const = sunem_initialise('pec_plate',false);
+Const = sunem_initialise('pec_plate_fine_mesh',false);
 
 % --------------------------------------------------------------------------------------------------
 % Program flow settings
@@ -25,17 +25,17 @@ Const.use_mpi_processes     = 3;
 % --------------------------------------------------------------------------------------------------
 % Define input files for extracting FEKO data
 % --------------------------------------------------------------------------------------------------
-Const.FEKOmatfilename          = 'pec_plate.mat';
-Const.FEKOstrfilename          = 'pec_plate.str';
-Const.FEKOrhsfilename          = 'pec_plate.rhs';
-Const.FEKOoutfilename          = 'pec_plate.out';
-Const.FEKOefefilename          = 'pec_plate.efe';
-Const.FEKOffefilename          = 'pec_plate.ffe';
+Const.FEKOmatfilename          = 'pec_plate_fine_mesh.mat';
+Const.FEKOstrfilename          = 'pec_plate_fine_mesh.str';
+Const.FEKOrhsfilename          = 'pec_plate_fine_mesh.rhs';
+Const.FEKOoutfilename          = 'pec_plate_fine_mesh.out';
+Const.FEKOefefilename          = 'pec_plate_fine_mesh.efe';
+Const.FEKOffefilename          = 'pec_plate_fine_mesh.ffe';
 
 % --------------------------------------------------------------------------------------------------
 % Define output files for transferring expansion coefficients back to FEKO data
 % --------------------------------------------------------------------------------------------------
-Const.SUNEMmomstrfilename      = 'sunem_mom_pec_plate.str';
+Const.SUNEMmomstrfilename      = 'sunem_mom_pec_plate_fine_mesh.str';
 
 % --------------------------------------------------------------------------------------------------
 % Read the MoM matrix equation from the file
