@@ -36,8 +36,11 @@ MoMSolverMPI::MoMSolverMPI(std::vector<Node> nodes,
     std::complex<double> complex_constant(0, 1);
     this->j = complex_constant;
 
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    this->num_threads = 6;
+    this->num_threads = 8 / size;
+    //std::cout << "Set threads as: " << this->num_threads << std::endl;
 }
 
 void MoMSolverMPI::calculateVrhsInternally()
@@ -48,13 +51,15 @@ void MoMSolverMPI::calculateVrhsInternally()
     // TODO change to complex for ease of use in calculations
 
     Node E(1, 0, 0);
-    this->vrhs_internal = std::vector<double>(this->edges.size(), 0);
+    //this->vrhs_internal = std::vector<double>(this->edges.size(), 0);
+    this->vrhs_internal.resize(this->edges.size());
+    Eigen::VectorXcd v(this->edges.size());
 
     for(int i = 0; i < this->edges.size(); i++)
     {
-        this->vrhs_internal[i] = E.getDotNoComplex(this->edges[i].getRhoCPlus()) / 2 +
+        this->vrhs_internal(i) = E.getDotNoComplex(this->edges[i].getRhoCPlus()) / 2 +
                                  E.getDotNoComplex(this->edges[i].getRhoCMinus()) / 2;
-        this->vrhs_internal[i] = this->vrhs_internal[i] * this->edges[i].getLength();  
+        this->vrhs_internal(i) = this->vrhs_internal[i] * this->edges[i].getLength();  
     }
 }
 
@@ -67,31 +72,34 @@ void MoMSolverMPI::calculateJMatrix()
     // First lets put the values into relevant Eigen datatypes
     // TODO After OpenMP switch all to Matrices to Eigen Datatypes
     // TODO change function name
-    Eigen::MatrixXcd m(this->edges.size(), this->edges.size()); 
+    // Eigen::MatrixXcd m(this->edges.size(), this->edges.size()); 
 
-    for(int i = 0; i < this->edges.size(); i++)
-    {
-        for(int j = 0; j < this->edges.size(); j++)
-        {
-            m(i, j) = this->z_mn[i][j];
-         }
-    }
+    // for(int i = 0; i < this->edges.size(); i++)
+    // {
+    //     for(int j = 0; j < this->edges.size(); j++)
+    //     {
+    //         m(i, j) = this->z_mn[i][j];
+    //      }
+    // }
 
-    Eigen::VectorXcd v(this->edges.size());
+    // Eigen::VectorXcd v(this->edges.size());
 
-    for(int i = 0; i < this->vrhs_internal.size(); i++)
-    {
-        std::complex<double> temp(this->vrhs_internal[i]);
-        v(i) = temp;
-    }
+    // for(int i = 0; i < this->vrhs_internal.size(); i++)
+    // {
+    //     std::complex<double> temp(this->vrhs_internal[i]);
+    //     v(i) = temp;
+    // }
 
     // Now lets solve for I
-    Eigen::VectorXcd i_lhs = m.partialPivLu().solve(v);
 
-    for(int i = 0; i < i_lhs.size(); i++)
-    {
-        std::cout << i_lhs(i) << std::endl;
-    }
+    omp_set_num_threads(this->num_threads * 4);
+    std::cout << "num threads: " <<Eigen::nbThreads() << std::endl;
+    Eigen::VectorXcd i_lhs = this->z_mn.partialPivLu().solve(this->vrhs_internal);
+
+    // for(int i = 0; i < i_lhs.size(); i++)
+    // {
+    //     std::cout << i_lhs(i) << std::endl;
+    // }
 }
 
 void MoMSolverMPI::calculateZmnByFaceMPI()
@@ -191,8 +199,9 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
     }
 
     // Lets calculate all the portions of Zmn specified by the processes p values
-    std::vector<double> sub_zmn = this->workMPI(sub_p_values);
-    
+    //std::vector<double> sub_zmn = this->workMPI(sub_p_values);
+    std::vector<double> sub_zmn = this->workMPIMP(sub_p_values);
+
     // Lets gather all the vector sizes
     // Lets first create a vector to store the sizes 
     // It is important to remember to resize the vector
@@ -247,15 +256,22 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
     if(rank == 0)
     {
         // Lets resize the internal Zmn
-        std::vector<std::complex<double>> row_vector(this->edges.size(), 0);
-        this->z_mn = std::vector<std::vector<std::complex<double>>>(this->edges.size(), row_vector);
+        // std::vector<std::complex<double>> row_vector(this->edges.size(), 0);
+        // this->z_mn = std::vector<std::vector<std::complex<double>>>(this->edges.size(), row_vector);
+        this->z_mn.resize(this->edges.size(), this->edges.size());
+
+        // TEST
+        // for(int i = 0; i < all_zmn_data.size(); i++)
+        // {
+        //     std::cout << all_zmn_data
+        // }
 
         int index;
         for(int i = 0; i < all_zmn_data.size() / 4; i++)
         {
             index = i * 4;
             std::complex<double> temp(all_zmn_data[index + 2], all_zmn_data[index + 3]);
-            this->z_mn[(int)all_zmn_data[index]][(int)all_zmn_data[index + 1]] += temp; 
+            this->z_mn((int)all_zmn_data[index], (int)all_zmn_data[index + 1]) += temp; 
         }
         // for(int i = 0; i < this->edges.size(); i++)
         // {
@@ -366,6 +382,106 @@ std::vector<double> MoMSolverMPI::workMPI(std::vector<int> p_values) // RENAME
     return partial_zmn;
 }
 
+std::vector<double> MoMSolverMPI::workMPIMP(std::vector<int> p_values) // RENAME
+{
+    // See MoMSolverMPI::calculateZmnByFace() for full commentary
+    std::vector<double> zmn;
+    omp_set_num_threads(this->num_threads);
+    #pragma omp parallel
+    {
+        std::vector<double> partial_zmn;
+
+        #pragma omp for nowait
+        for(int i = 0; i < p_values.size(); i++)
+        {
+            int p = p_values[i];
+
+            for(int q = 0; q < this->triangles.size(); q++)
+            {
+                std::vector<Node> a_and_phi = this->calculateAAndPhi(p, q);
+
+                for(int e = 0; e < this->triangles[q].getEdges().size(); e++)
+                {
+                    Node a_pq;
+                    if(this->triangles[q].getVertex1() == this->edges[this->triangles[q].getEdges()[e]].getPlusFreeVertex() ||
+                    this->triangles[q].getVertex1() == this->edges[this->triangles[q].getEdges()[e]].getMinusFreeVertex())
+                    {
+                        a_pq = a_and_phi[0].getScalarMultiply(this->edges[this->triangles[q].getEdges()[e]].getLength());   
+                    }
+
+                    if(this->triangles[q].getVertex2() == this->edges[this->triangles[q].getEdges()[e]].getPlusFreeVertex() ||
+                    this->triangles[q].getVertex2() == this->edges[this->triangles[q].getEdges()[e]].getMinusFreeVertex())
+                    {
+                        a_pq = a_and_phi[1].getScalarMultiply(this->edges[this->triangles[q].getEdges()[e]].getLength());   
+                    }
+
+                    if(this->triangles[q].getVertex3() == this->edges[this->triangles[q].getEdges()[e]].getPlusFreeVertex() ||
+                    this->triangles[q].getVertex3() == this->edges[this->triangles[q].getEdges()[e]].getMinusFreeVertex())
+                    {
+                        a_pq = a_and_phi[2].getScalarMultiply(this->edges[this->triangles[q].getEdges()[e]].getLength());   
+                    }
+
+                    std::complex<double> phi = a_and_phi[3].getXComplexCoord() * this->edges[this->triangles[q].getEdges()[e]].getLength();
+
+                    if(this->edges[this->triangles[q].getEdges()[e]].getMinusTriangleIndex() == q)
+                    {
+                        phi = phi * std::complex<double>(-1.0, 0);
+                    }
+                    else
+                    {
+                        a_pq = a_pq.getScalarMultiply(-1.0);
+                    }
+
+                    for(int r = 0; r < this->triangles[p].getEdges().size(); r++)
+                    {
+                        Node rho_c;
+                        double phi_sign;
+
+                        if(this->edges[this->triangles[p].getEdges()[r]].getMinusTriangleIndex() == p)
+                        {
+                            rho_c = this->edges[this->triangles[p].getEdges()[r]].getRhoCMinus();
+                            phi_sign = -1;
+                        }
+                        else
+                        {
+                            rho_c = this->edges[this->triangles[p].getEdges()[r]].getRhoCPlus();
+                            phi_sign = 1;
+                        }
+
+                        // This is the only difference between the serial implentation
+                        // The indices of the partial Zmn value needs to be returned aswell
+                        // so the main process knows where to put it
+                        // Therefore, lets first push the indices to the vector
+                        partial_zmn.push_back(this->triangles[p].getEdges()[r]);
+                        partial_zmn.push_back(this->triangles[q].getEdges()[e]);
+
+                        // Now lets calculate the partial Zmn value
+                        std::complex<double> temp_zmn_value = 
+                        this->edges[this->triangles[p].getEdges()[r]].getLength() *
+                        (this->j * 
+                            this->omega *
+                            a_pq.getDot(rho_c) / 
+                            std::complex<double>(2, 0) -
+                            phi * 
+                            phi_sign);
+
+                        // It is important to remember that MPI does not natively support complex values
+                        // Therefore, it is necessary to seperate them into their real and imaginary
+                        // parts and push them individually
+                        partial_zmn.push_back(temp_zmn_value.real());  
+                        partial_zmn.push_back(temp_zmn_value.imag());  
+                    }
+                }                
+            } 
+        }
+
+        #pragma omp critical
+        zmn.insert(zmn.end(), partial_zmn.begin(), partial_zmn.end()); 
+
+    }
+    return zmn;
+}
+
 std::vector<Node> MoMSolverMPI::calculateAAndPhi(int p, int q)
 {
     // The full commentary can be found in the serial implementation
@@ -379,8 +495,9 @@ std::vector<Node> MoMSolverMPI::calculateAAndPhi(int p, int q)
     std::vector<Node> a_and_phi_vector;
     a_and_phi_vector.resize(4);
 
-    omp_set_num_threads(this->num_threads);
-    #pragma omp parallel for
+    //omp_set_num_threads(this->num_threads);
+    //std::cout << "i have: " << omp_get_num_threads() << std::endl;
+    //#pragma omp parallel for
     for(int i = 0; i < 3; i++)
     {
         Node a_pq_node_1 = this->nodes[this->triangles[q].getVertex1()].getScalarMultiply(i_vector[1]);
@@ -436,8 +553,8 @@ std::vector<std::complex<double>> MoMSolverMPI::calculateIpq(int p, int q)
         std::vector<std::complex<double>> Ipq_xi_vector(this->quadrature_weights_values.size());
         std::vector<std::complex<double>> Ipq_eta_vector(this->quadrature_weights_values.size());
 
-        omp_set_num_threads(this->num_threads);
-        #pragma omp parallel for
+        //omp_set_num_threads(this->num_threads);
+        //#pragma omp parallel for
         for(int i = 0; i < this->quadrature_weights_values.size(); i++)
         {
             Node xi_r_1 = this->nodes[this->triangles[q].getVertex1()].getScalarMultiply(this->quadrature_weights_values[i][1]); 

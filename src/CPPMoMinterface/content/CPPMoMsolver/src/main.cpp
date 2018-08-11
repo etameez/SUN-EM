@@ -22,9 +22,13 @@ int main()
     MoMFileReader reader(path); 
     MoMSolver solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
 
+    Timer t;
+    t.startTimer();
     solver.calculateZmnByFace();
     solver.calculateVrhsInternally();
     solver.calculateJMatrix();
+    t.endTimer();
+    t.printTime();
     solver.timeProfiler(1);
 
   

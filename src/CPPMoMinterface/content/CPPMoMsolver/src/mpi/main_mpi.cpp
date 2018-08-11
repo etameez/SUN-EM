@@ -41,12 +41,15 @@ int main()
     solver.calculateZmnByFaceMPI();
     if(rank == 0)
     {
-        t.endTimer();
-        std::cout << "The MPI ZMN TIME: " << std::endl;
-        t.printTime();
 
-        //solver.calculateVrhsInternally();
-        //solver.calculateJMatrix();
+        solver.calculateVrhsInternally();
+        Timer j;
+        j.startTimer();
+        solver.calculateJMatrix();
+        j.endTimer();
+        t.endTimer();
+        t.printTime();
+        j.printTime();
     }
 
     MPI_Finalize();
