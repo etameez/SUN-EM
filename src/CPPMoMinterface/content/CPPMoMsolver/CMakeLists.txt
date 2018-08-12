@@ -11,7 +11,7 @@ if(MPI)
 
     find_package(MPI REQUIRED)
     find_package(OpenMP REQUIRED)
-    
+
     include_directories(${MPI_INCLUDE_PATH})
     set(SOURCES src/edge.cpp
                 src/mom_data.cpp
@@ -26,7 +26,13 @@ if(MPI)
                 src/mpi/mom_solver_mpi.cpp)
     add_executable(mom_mpi ${SOURCES})
     target_link_libraries(mom_mpi ${MPI_LIBRARIES}
-                                    OpenMP::OpenMP_CXX)
+                                    OpenMP::OpenMP_CXX
+                                    -L/usr/lib/
+                                    -lscalapack
+                                    -lrefblas
+                                    -ltmg
+                                    -lreflapack
+                                    -lgfortran)
 else()
     MESSAGE("COMPILING WITHOUT MPI")
     file(GLOB SOURCES "src/*.cpp")
