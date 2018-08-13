@@ -32,25 +32,26 @@ int main()
     MoMFileReader reader(path); 
     MoMSolverMPI solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
 
-    Timer t;
-    if(rank == 0)
-    {
-        t.startTimer();
-    }
+    // Timer t;
+    // if(rank == 0)
+    // {
+    //     t.startTimer();
+    // }
 
     solver.calculateZmnByFaceMPI();
     if(rank == 0)
     {
 
         solver.calculateVrhsInternally();
-        Timer j;
-        j.startTimer();
-        solver.calculateJMatrix();
-        j.endTimer();
-        t.endTimer();
-        t.printTime();
-        j.printTime();
+        //Timer j;
+        //j.startTimer();
+        //solver.calculateJMatrix();
+        //j.endTimer();
+        //t.endTimer();
+        //t.printTime();
+        //j.printTime();
     }
+    solver.calculateJMatrixSCALAPACK();
 
     MPI_Finalize();
     return 0;

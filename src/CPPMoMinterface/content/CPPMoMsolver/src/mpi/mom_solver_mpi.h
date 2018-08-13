@@ -19,6 +19,24 @@
 #include "../quadrature.h"
 #include "../timer.h"
 
+extern "C"
+{
+    void Cblacs_pinfo(int*, int*); 
+    void Cblacs_get(int , int, int*);
+    void Cblacs_gridinit(int*, const char*, int, int);
+    void Cblacs_gridinfo(int, int*, int*, int*,int*);
+    void Cblacs_barrier(int, const char*);
+
+    void Czgesd2d(int, int, int, std::complex<double>*, int, int, int);
+    void Czgerv2d(int, int, int, std::complex<double>*, int, int, int);
+
+    int numroc_(int*, int*, int*, int*, int*);
+    void descinit_(int*, int*, int*, int*, int*, int*, int*, int*, int*, int*);
+
+    void pzgetrf_(int*, int*, std::complex<double>*, int*, int*, int*, int*, int*);
+
+}
+
 class MoMSolverMPI
 {
     public:
@@ -34,6 +52,8 @@ class MoMSolverMPI
         int numValuesMPI(int num_procs, int rank, int data_length);
         std::vector<double> workMPI(std::vector<int> p_values); // RENAME
         std::vector<double> workMPIMP(std::vector<int> p_values); // RENAME
+
+        void calculateJMatrixSCALAPACK();
 
     protected:
         std::vector<Node> nodes;

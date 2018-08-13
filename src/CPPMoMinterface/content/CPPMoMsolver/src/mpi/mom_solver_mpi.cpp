@@ -482,6 +482,252 @@ std::vector<double> MoMSolverMPI::workMPIMP(std::vector<int> p_values) // RENAME
     return zmn;
 }
 
+void MoMSolverMPI::calculateJMatrixSCALAPACK()
+{   
+    // Lets get the rank and numprocs
+    int rank;
+    int size;
+    Cblacs_pinfo(&rank, &size);
+
+
+    // TEST
+    //std::vector<std::vector<std::complex<double>>> A_glob;
+    std::complex<double> A_glob[4][4];
+    std::complex<double> B_glob[4];
+    if(rank == 0)
+    {
+        // std::vector<std::complex<double>> r_1;
+        // r_1.push_back(std::complex<double>(0,0));
+        // r_1.push_back(std::complex<double>(1,1));
+        // r_1.push_back(std::complex<double>(2,2));
+        // r_1.push_back(std::complex<double>(3,3));
+        // std::vector<std::complex<double>> r_2;
+        // r_2.push_back(std::complex<double>(4,4));
+        // r_2.push_back(std::complex<double>(5,5));
+        // r_2.push_back(std::complex<double>(6,6));
+        // r_2.push_back(std::complex<double>(5,7));
+        // std::vector<std::complex<double>> r_3;
+        // r_3.push_back(std::complex<double>(6,8));
+        // r_3.push_back(std::complex<double>(9,9));
+        // r_3.push_back(std::complex<double>(10,10));
+        // r_3.push_back(std::complex<double>(11,11));
+        // std::vector<std::complex<double>> r_4;
+        // r_4.push_back(std::complex<double>(12,12));
+        // r_4.push_back(std::complex<double>(13,13));
+        // r_4.push_back(std::complex<double>(14,14));
+        // r_4.push_back(std::complex<double>(15,15));
+        // A_glob.push_back(r_1);
+        // A_glob.push_back(r_2);
+        // A_glob.push_back(r_3);
+        // A_glob.push_back(r_4);
+
+        // A_glob = new std::complex<double> [4 * 4];
+        // std::cout << A_glob[0][0] << std::endl; 
+
+        A_glob[0][0] = std::complex<double>(0,0);
+        A_glob[0][1] = std::complex<double>(1,1);
+        A_glob[0][2] = std::complex<double>(2,2);
+        A_glob[0][3] = std::complex<double>(3,3);
+        A_glob[1][0] = std::complex<double>(4,4);
+        A_glob[1][1] = std::complex<double>(5,5);
+        A_glob[1][2] = std::complex<double>(6,6);
+        A_glob[1][3] = std::complex<double>(5,7);
+        A_glob[2][0] = std::complex<double>(6,8);
+        A_glob[2][1] = std::complex<double>(9,9);
+        A_glob[2][2] = std::complex<double>(10,10);
+        A_glob[2][3] = std::complex<double>(11,11);
+        A_glob[3][0] = std::complex<double>(12,12);
+        A_glob[3][1] = std::complex<double>(13,13);
+        A_glob[3][2] = std::complex<double>(14,14);
+        A_glob[3][3] = std::complex<double>(15,15);
+
+        B_glob[0] = std::complex<double>(1,0);
+        B_glob[1] = std::complex<double>(2,0);
+        B_glob[2] = std::complex<double>(3,0);
+        B_glob[3] = std::complex<double>(4,0);
+        // for(int i = 0; i < 4; i++)
+        // {
+        //     for(int j = 0; j < 4; j++)
+        //     {
+        //         std::cout << A_glob[i][j];
+        //     }
+        //     std::cout << std::endl;
+        // }
+    }
+
+    // For Zmn
+    int matrix_size = 4; // TODO Change
+    int n_block_row = 2; // TODO Change
+    int n_block_col = 2; // TODO Change
+
+    // For Vrhs
+    int vector_size = 4; // TODO Change
+    int n_v_block_row = 1; // TODO Change
+    int n_v_block_col = 1; // TODO Change
+
+    // Lets get the BLACS context
+    // Not sure if needed
+    // Just returns 0
+    int context;
+    Cblacs_get(0, 0, &context);
+
+    // Lets create a process grid
+    // TODO change to dynamic bassed on procs
+    int proc_rows = 2;
+    int proc_cols = 2;
+    Cblacs_gridinit(&context, "Row-major", proc_rows, proc_cols); 
+
+    // TODO change procrows and proccols
+    int procrows;
+    int proccols;
+    int my_row;
+    int my_col;
+    Cblacs_gridinfo(context, &procrows, &proccols, &my_row, &my_col);
+    
+    // Print out grid pattern of processes
+    // for (int r = 0; r < proc_rows; ++r) {
+    //     for (int c = 0; c < proc_cols; ++c) {
+    //         Cblacs_barrier(context, "All");
+    //         if (my_row == r && my_col == c) {
+    //             std::cout << rank << " " << std::flush;
+    //         }
+    //     }
+    //     Cblacs_barrier(context, "All");
+    //     if (rank == 0)
+    //         std::cout << std::endl;
+    // }
+
+    // Lets get the number or local rows and columns
+    // Zmn
+    int zero = 0;
+    int local_rows = numroc_(&matrix_size, &n_block_row, &my_row, &zero, &proc_rows);
+    int local_cols = numroc_(&matrix_size, &n_block_col, &my_col, &zero, &proc_cols);
+    // std::cout << "Rank: " << rank << " Rows: " << local_rows << " Cols: " << local_cols << std::endl;
+
+    // Vrhs
+    int o = 1;
+    int v_local_rows = numroc_(&vector_size, &n_v_block_row, &my_row, &zero, &procrows);
+    int v_local_cols = numroc_(&o, &n_v_block_col, &my_col, &zero, &proccols);
+    // std::cout << "Rank: " << rank << " row: " << v_local_rows << "--" << v_local_cols << std::endl;
+
+    std::complex<double> *A_local;
+    A_local = new std::complex<double>[local_rows * local_cols];
+    // TODO maybe have to init matrix to zero;
+
+    int sendr = 0, sendc = 0, recvr = 0, recvc = 0;
+    for (int r = 0; r < matrix_size; r += n_block_row, sendr=(sendr+1)%proc_rows) {
+        sendc = 0;
+        // Number of rows to be sent
+        // Is this the last row block?
+        int nr = n_block_row;
+        if (matrix_size-r < n_block_row)
+            nr = matrix_size-r;
+ 
+        for (int c = 0; c < matrix_size; c += n_block_col, sendc=(sendc+1)%proccols) {
+            // Number of cols to be sent
+            // Is this the last col block?
+            int nc = n_block_col;
+            if (matrix_size-c < n_block_col)
+                nc = matrix_size-c;
+ 
+            if (rank == 0) {
+                // Send a nr-by-nc submatrix to process (sendr, sendc)
+                Czgesd2d(context, nr, nc, *A_glob+matrix_size*c+r, matrix_size, sendr, sendc);
+            }
+ 
+            if (my_row == sendr && my_col == sendc) {
+                // Receive the same data
+                // The leading dimension of the local matrix is nrows!
+                Czgerv2d(context, nr, nc, A_local+local_rows*recvc+recvr, local_rows, 0, 0);
+                recvc = (recvc+nc)%local_cols;
+            }
+ 
+        }
+ 
+        if (my_row == sendr)
+            recvr = (recvr+nr)%local_rows;
+    }
+
+    std::string file_name = std::to_string(rank) + ".txt";
+    std::ofstream file;
+    file.open(file_name);
+    for(int i = 0; i < 2; i++)
+    {
+        for(int j = 0; j < 2; j++)
+        {
+            file << *(A_local + 2 * j + i);
+        }
+        file << std::endl;
+    } 
+
+    // Now lets distribute Vrhs
+    sendr = 0;
+    sendc = 0;
+    recvr = 0;
+    recvc = 0;
+    for (int r = 0; r < matrix_size; r += n_block_row, sendr=(sendr+1)%proc_rows) {
+        sendc = 0;
+        // Number of rows to be sent
+        // Is this the last row block?
+        int nr = n_block_row;
+        if (matrix_size-r < n_block_row)
+            nr = matrix_size-r;
+ 
+        for (int c = 0; c < matrix_size; c += n_block_col, sendc=(sendc+1)%proccols) {
+            // Number of cols to be sent
+            // Is this the last col block?
+            int nc = n_block_col;
+            if (matrix_size-c < n_block_col)
+                nc = matrix_size-c;
+ 
+            if (rank == 0) {
+                // Send a nr-by-nc submatrix to process (sendr, sendc)
+                Czgesd2d(context, nr, nc, *A_glob+matrix_size*c+r, matrix_size, sendr, sendc);
+            }
+ 
+            if (my_row == sendr && my_col == sendc) {
+                // Receive the same data
+                // The leading dimension of the local matrix is nrows!
+                Czgerv2d(context, nr, nc, A_local+local_rows*recvc+recvr, local_rows, 0, 0);
+                recvc = (recvc+nc)%local_cols;
+            }
+ 
+        }
+ 
+        if (my_row == sendr)
+            recvr = (recvr+nr)%local_rows;
+    }    
+
+    // Lets solve the equation 
+    // Lets first get the description of the matrix
+    
+    int info = 0;
+    int lda = std::max(1, local_rows);
+    int desc[9]; 
+
+    descinit_(desc, &matrix_size, &matrix_size, &local_rows, &local_cols, &zero, &zero, &context, &lda, &info);
+
+    // for(int i = 0; i < 9; i++)
+    // {
+    //     file << desc[i] << std::endl;
+    // }
+
+    // Now the LU decomposition
+    int one = 1;
+    int local_pivot[local_rows * n_block_row];
+    pzgetrf_(&matrix_size, &matrix_size, A_local, &one, &one, desc, local_pivot, &info); 
+
+    for(int i = 0; i < 2; i++)
+    {
+        for(int j = 0; j < 2; j++)
+        {
+            file << *(A_local + 2 * j + i);
+        }
+        file << std::endl;
+    }
+
+}
+
 std::vector<Node> MoMSolverMPI::calculateAAndPhi(int p, int q)
 {
     // The full commentary can be found in the serial implementation
