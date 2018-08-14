@@ -489,63 +489,104 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     int size;
     Cblacs_pinfo(&rank, &size);
 
-    // For testing
-    // TODO: delete
-    std::string file_name = std::to_string(rank) + ".txt";
-    std::ofstream file;
-    file.open(file_name);
+    // Lets define some constants
+    int zero = 0;
+    int one = 1;
 
-    std::complex<double> A_glob[4][4]; // future Zmn
-    std::complex<double> B_glob[4];    // future Vrhs
+
+    std::complex<double> ZMN[this->edges.size()][this->edges.size()];
+    std::complex<double> VRHS[this->edges.size()];
     if(rank == 0)
     {
-        // Test data -> going to be Zmn
-        A_glob[0][0] = std::complex<double>(0,0);
-        A_glob[0][1] = std::complex<double>(1,1);
-        A_glob[0][2] = std::complex<double>(2,2);
-        A_glob[0][3] = std::complex<double>(3,3);
-        A_glob[1][0] = std::complex<double>(4,4);
-        A_glob[1][1] = std::complex<double>(5,5);
-        A_glob[1][2] = std::complex<double>(6,6);
-        A_glob[1][3] = std::complex<double>(5,7);
-        A_glob[2][0] = std::complex<double>(6,8);
-        A_glob[2][1] = std::complex<double>(9,9);
-        A_glob[2][2] = std::complex<double>(10,10);
-        A_glob[2][3] = std::complex<double>(11,11);
-        A_glob[3][0] = std::complex<double>(12,12);
-        A_glob[3][1] = std::complex<double>(13,13);
-        A_glob[3][2] = std::complex<double>(14,14);
-        A_glob[3][3] = std::complex<double>(15,15);
+        for(int i = 0; i < this->edges.size(); i++)
+        {
+            for(int j = 0; j < this-> edges.size(); j++)
+            {
+                ZMN[i][j] = this->z_mn(i, j);
+            }
+        }
 
-        // Test data -> going to be vrhs
-        B_glob[0] = std::complex<double>(1,0);
-        B_glob[1] = std::complex<double>(2,0);
-        B_glob[2] = std::complex<double>(3,0);
-        B_glob[3] = std::complex<double>(4,0);
+        for(int i = 0; i < this->edges.size(); i++)
+        {
+            VRHS[i] = this->vrhs_internal(i);
 
-        // Print A_glob for sanity check 
-        // for(int i = 0; i < 4; i++)
-        // {
-        //     for(int j = 0; j < 4; j++)
-        //     {
-        //         std::cout << A_glob[i][j];
-        //     }
-        //     std::cout << std::endl;
-        // }
+            
+        }
     }
+
+    // if(rank == 0)
+    // {
+    //     int count = 0;
+    //     for(int i =0; i < this->edges.size(); i++)
+    //     {
+    //         std::cout << this->vrhs_internal(i) << std::endl;
+            
+    //         if((i % 64) == 0)
+    //         {
+    //             std::cout << "--------------"<<count<<"-------------------" << std::endl;
+    //             count++;
+    //         }
+    //     }
+    // }
+
+    // For testing
+    // TODO: delete
+    // std::string file_name = std::to_string(rank) + ".txt";
+    // std::ofstream file;
+    // file.open(file_name);
+
+    // std::complex<double> A_glob[4][4]; // future Zmn
+    // std::complex<double> B_glob[4];    // future Vrhs
+    // if(rank == 0)
+    // {
+    //     // Test data -> going to be Zmn
+    //     A_glob[0][0] = std::complex<double>(0,0);
+    //     A_glob[0][1] = std::complex<double>(1,1);
+    //     A_glob[0][2] = std::complex<double>(2,2);
+    //     A_glob[0][3] = std::complex<double>(3,3);
+    //     A_glob[1][0] = std::complex<double>(4,4);
+    //     A_glob[1][1] = std::complex<double>(5,5);
+    //     A_glob[1][2] = std::complex<double>(6,6);
+    //     A_glob[1][3] = std::complex<double>(5,7);
+    //     A_glob[2][0] = std::complex<double>(6,8);
+    //     A_glob[2][1] = std::complex<double>(9,9);
+    //     A_glob[2][2] = std::complex<double>(10,10);
+    //     A_glob[2][3] = std::complex<double>(11,11);
+    //     A_glob[3][0] = std::complex<double>(12,12);
+    //     A_glob[3][1] = std::complex<double>(13,13);
+    //     A_glob[3][2] = std::complex<double>(14,14);
+    //     A_glob[3][3] = std::complex<double>(15,15);
+
+    //     // Test data -> going to be vrhs
+    //     B_glob[0] = std::complex<double>(1,0);
+    //     B_glob[1] = std::complex<double>(2,0);
+    //     B_glob[2] = std::complex<double>(3,0);
+    //     B_glob[3] = std::complex<double>(4,0);
+
+    //     // Print A_glob for sanity check 
+    //     // for(int i = 0; i < 4; i++)
+    //     // {
+    //     //     for(int j = 0; j < 4; j++)
+    //     //     {
+    //     //         std::cout << A_glob[i][j];
+    //     //     }
+    //     //     std::cout << std::endl;
+    //     // }
+    // }
 
     // Lets define the size of Zmn
     // Lets also define the block size
-    int matrix_size = 4; // TODO: Change
-    int n_block_row = 2; // TODO: Change
-    int n_block_col = 2; // TODO: Change
+    int matrix_size = this->edges.size(); 
+    int block_size = 64;
+    // int n_block_row = 2; // TODO: Change
+    // int n_block_col = 2; // TODO: Change
 
     // Lets get the BLACS context
     int context;
     Cblacs_get(0, 0, &context);
 
     // Lets create a process grid
-    // TODO: change to dynamic bassed on procs
+    // TODO: change to dynamic bassed on procs (sqrt idea)
     int proc_rows = 2;
     int proc_cols = 2;
     Cblacs_gridinit(&context, "Row-major", proc_rows, proc_cols); 
@@ -573,17 +614,16 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
 
     // Lets get the number or local rows and columns
     // Zmn
-    int zero = 0;
-    int local_rows = numroc_(&matrix_size, &n_block_row, &my_row, &zero, &proc_rows);
-    int local_cols = numroc_(&matrix_size, &n_block_col, &my_col, &zero, &proc_cols);
+    int local_rows = numroc_(&matrix_size, &block_size, &my_row, &zero, &proc_rows);
+    int local_cols = numroc_(&matrix_size, &block_size, &my_col, &zero, &proc_cols);
     // std::cout << "Rank: " << rank << " Rows: " << local_rows << " Cols: " << local_cols << std::endl;
 
     // Vrhs
-    int o = 1; // TODO: delete
-    int v_local_rows = numroc_(&matrix_size, &n_block_row, &my_row, &zero, &procrows);
-    int v_local_cols = numroc_(&o, &n_block_col, &my_col, &zero, &proccols);
-    file << "Rank: " << rank << " row: " << v_local_rows << "--" << v_local_cols << std::endl;
-    file << my_row << " " << my_col << std::endl;
+    int v_local_rows = numroc_(&matrix_size, &block_size, &my_row, &zero, &procrows);
+    int v_local_cols = numroc_(&one, &block_size, &my_col, &zero, &proccols);
+    // file << "Rank: " << rank <<std::endl;
+    // file << "My Row: " << my_row << std::endl;
+    // file << "My Col: " << my_col << std::endl;
 
     // Create the local part of Zmn per process
     std::complex<double> *A_local;
@@ -592,24 +632,24 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
 
     // Lets send the global Zmn to the local Zmn's in a block cyclic manner
     int sendr = 0, sendc = 0, recvr = 0, recvc = 0;
-    for (int r = 0; r < matrix_size; r += n_block_row, sendr=(sendr+1)%proc_rows) {
+    for (int r = 0; r < matrix_size; r += block_size, sendr=(sendr+1)%proc_rows) {
         sendc = 0;
         // Number of rows to be sent
         // Is this the last row block?
-        int nr = n_block_row;
-        if (matrix_size-r < n_block_row)
+        int nr = block_size;
+        if (matrix_size-r < block_size)
             nr = matrix_size-r;
  
-        for (int c = 0; c < matrix_size; c += n_block_col, sendc=(sendc+1)%proccols) {
+        for (int c = 0; c < matrix_size; c += block_size, sendc=(sendc+1)%proccols) {
             // Number of cols to be sent
             // Is this the last col block?
-            int nc = n_block_col;
-            if (matrix_size-c < n_block_col)
+            int nc = block_size;
+            if (matrix_size-c < block_size)
                 nc = matrix_size-c;
  
             if (rank == 0) {
                 // Send a nr-by-nc submatrix to process (sendr, sendc)
-                Czgesd2d(context, nr, nc, *A_glob+matrix_size*c+r, matrix_size, sendr, sendc);
+                Czgesd2d(context, nr, nc, *ZMN+matrix_size*c+r, matrix_size, sendr, sendc);
             }
  
             if (my_row == sendr && my_col == sendc) {
@@ -646,18 +686,18 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     int rec_col = 0;
     int v_local_index = 0;
 
-    for(int i = 0; i < matrix_size; i += n_block_row)
+    for(int i = 0; i < matrix_size; i += block_size)
     {
         // Check if these are the last rows
         
-        int num_rows = n_block_row;
-        if(matrix_size - i < n_block_row)
+        int num_rows = block_size;
+        if(matrix_size - i < block_size)
         {
             num_rows = matrix_size - i;
         }
 
         // Switch back to sending to (0,0)
-        if(send_row > proc_rows)
+        if(send_row >= proc_rows)
         {
             send_row = 0;
         }
@@ -666,7 +706,7 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
         {
             // SEND
             // TODO: Potential problem at B_glob
-            Czgesd2d(context, num_rows, 1, &B_glob[i], matrix_size, send_row, send_col);
+            Czgesd2d(context, num_rows, 1, &VRHS[i], matrix_size, send_row, send_col);
 
         }
 
@@ -674,8 +714,8 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
         {
             // RECEIVE
             // TODO: Potential problem at B_local
-            Czgerv2d(context, num_rows, 1, &B_local[i * v_local_index], local_rows, 0, 0);
-            v_local_index++;
+            Czgerv2d(context, num_rows, 1, &B_local[v_local_index], local_rows, 0, 0);
+            v_local_index += block_size;
         }
         send_row++;
     }
@@ -684,9 +724,15 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     // Print local B to file
     // if(v_local_cols > 0)
     // {
+    //     int cntn = 0;
     //     for(int i = 0; i < v_local_rows; i++)
     //     {
     //         file << "b: " << B_local[i] << std::endl;
+    //         if((i%64) == 0)
+    //         {
+    //             file << "-----------" << cntn << "---------" << std::endl;
+    //             cntn++;
+    //         }
     //     }
     // }
 
@@ -697,14 +743,14 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     int lda = std::max(1, local_rows);
     int desc[9]; 
 
-    descinit_(desc, &matrix_size, &matrix_size, &n_block_row, &n_block_col, &zero, &zero, &context, &lda, &info);
+    descinit_(desc, &matrix_size, &matrix_size, &block_size, &block_size, &zero, &zero, &context, &lda, &info);
 
     // Then for Vrhs
     // TODO: Finish here
     int v_lda = std::max(1, v_local_rows);
     int v_desc[9];
 
-    descinit_(v_desc, &matrix_size, &o, &n_block_row, &n_block_col, &zero, &zero, &context, &v_lda, &info);
+    descinit_(v_desc, &matrix_size, &one, &block_size, &block_size, &zero, &zero, &context, &v_lda, &info);
 
     // file << "DESC" << std::endl;
     // for(int i = 0; i < 9; i++)
@@ -715,8 +761,7 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
 
 
     // Now the LU decomposition
-    int one = 1;
-    int local_pivot[local_rows * n_block_row];
+    int local_pivot[local_rows * block_size];
     pzgetrf_(&matrix_size, &matrix_size, A_local, &one, &one, desc, local_pivot, &info); 
 
     // Print after LU decomp the local matrices
@@ -737,15 +782,16 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     pzgetrs_("T", &matrix_size, &one, A_local, &one, &one, desc, local_pivot, B_local, &one, &one, v_desc, &info);
 
     // Lets print the solved vector
-    if(v_local_cols > 0)
-    {   
-        file << "ANSWER" << std::endl;
-        for(int i = 0; i < v_local_rows; i++)
-        {
-            file << B_local[i] << std::endl;
-        }
-        file << "ANSWER" << std::endl;
-    }
+    // if(v_local_cols > 0)
+    // {   
+    //     file << "ROWS: " << v_local_rows << std::endl;
+    //     file << "ANSWER" << std::endl;
+    //     for(int i = 0; i < v_local_rows; i++)
+    //     {
+    //         file << B_local[i] << std::endl;
+    //     }
+    //     file << "ANSWER" << std::endl;
+    // }
 
     // Lets gather the solved vector
     // TODO: finish here
@@ -754,18 +800,18 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     v_local_index = 0;
     std::complex<double> ans[matrix_size];
 
-    for(int i = 0; i < matrix_size; i += n_block_row)
+    for(int i = 0; i < matrix_size; i += block_size)
     {
         // Check if these are the last rows
         
-        int num_rows = n_block_row;
-        if(matrix_size - i < n_block_row)
+        int num_rows = block_size;
+        if(matrix_size - i < block_size)
         {
             num_rows = matrix_size - i;
         }
 
         // Switch back to sending to (0,0)
-        if(send_row > proc_rows)
+        if(send_row >= proc_rows)
         {
             send_row = 0;
         }
@@ -774,30 +820,28 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
         {
             // SEND
             // TODO: Potential problem at B_local
-            file << "HERE" << std::endl;
-            Czgesd2d(context, num_rows, 1, &B_local[i * v_local_index], matrix_size, 0, 0);
-            v_local_index++;
+            Czgesd2d(context, num_rows, 1, &B_local[v_local_index], matrix_size, 0, 0);
+            v_local_index += block_size;
         }
 
         if(rank == 0)
         {
             // RECEIVE
             // TODO: Potential problem at B_glob
-            file << "I: " << i << std::endl;
             Czgerv2d(context, num_rows, 1, &ans[i], local_rows, send_row, send_col);
         }
         send_row++;
     }
 
-    if(rank == 0)
-    {
-        file << "COLLATE" << std::endl;
-        for(int i = 0; i < matrix_size; i++)
-        {
-            file << ans[i] << std::endl;
-        }
-        file << "COLLATE" << std::endl;
-    }
+    // if(rank == 0)
+    // {
+    //     file << "COLLATE" << std::endl;
+    //     for(int i = 0; i < matrix_size; i++)
+    //     {
+    //         file << ans[i] << std::endl;
+    //     }
+    //     file << "COLLATE" << std::endl;
+    // }
 
     // Lets print the solved vector
     // TODO: finish here
