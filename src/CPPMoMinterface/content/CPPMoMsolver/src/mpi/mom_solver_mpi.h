@@ -78,6 +78,8 @@ class MoMSolverMPI
         std::vector<Node> calculateAAndPhi(int p, int q);
         std::vector<std::complex<double>> calculateIpq(int p, int q);
 
+        std::vector<int> getProcessGrid(int num_procs);
+
         int num_threads;
 
 };

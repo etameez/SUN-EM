@@ -518,7 +518,6 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     int zero = 0;
     int one = 1;
 
-
     //std::complex<double> ZMN[this->edges.size()][this->edges.size()];
     // std::complex<double> VRHS[this->edges.size()];
     // if(rank == 0)
@@ -610,8 +609,9 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
 
     // Lets create a process grid
     // TODO: change to dynamic bassed on procs (sqrt idea)
-    int proc_rows = 4;
-    int proc_cols = 2;
+    std::vector<int> proc_grid = this->getProcessGrid(size);
+    int proc_rows = proc_grid[0];
+    int proc_cols = proc_grid[1];
     Cblacs_gridinit(&context, "Row-major", proc_rows, proc_cols); 
 
     // TODO: change procrows and proccols
@@ -866,6 +866,8 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     //     file << "COLLATE" << std::endl;
     // }
 
+    // TODO: Add answer to internal vector
+
     // Lets print the solved vector
     // TODO: finish here
     // check against matlab
@@ -973,6 +975,35 @@ std::vector<std::complex<double>> MoMSolverMPI::calculateIpq(int p, int q)
     return i_vector;
 }
 
+std::vector<int> MoMSolverMPI::getProcessGrid(int num_procs)
+{
+    // THIS IS FOR ONLY UP TIL 12 PROCS
+    // TODO: optimize by hand
+    int proc_rows;
+    int proc_cols;
+
+    if(num_procs%2 == 0)
+    {
+        proc_cols = std::sqrt(num_procs);
+        proc_rows = num_procs / proc_cols;
+
+        if((proc_rows * proc_cols) != num_procs)
+        {
+            proc_cols--;
+            proc_rows += proc_cols;
+        }
+    }
+    else
+    {
+        proc_rows = num_procs;
+        proc_cols = 1;
+    }
+      
+    std::vector<int> return_vector;
+    return_vector.push_back(proc_rows);
+    return_vector.push_back(proc_cols);
+    return return_vector;
+}
 
 
 
