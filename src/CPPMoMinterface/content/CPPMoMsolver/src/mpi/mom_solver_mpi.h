@@ -34,6 +34,7 @@ extern "C"
     void descinit_(int*, int*, int*, int*, int*, int*, int*, int*, int*, int*);
 
     void pzgetrf_(int*, int*, std::complex<double>*, int*, int*, int*, int*, int*);
+    void pzgetrs_(const char*, int*, int*, std::complex<double>*, int*, int*,int* ,int*, std::complex<double>*, int*, int*, int*, int*);
 
 }
 

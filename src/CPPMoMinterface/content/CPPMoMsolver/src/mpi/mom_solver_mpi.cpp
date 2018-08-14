@@ -47,8 +47,8 @@ void MoMSolverMPI::calculateVrhsInternally()
 {
     // Lets calculate the Vrhs data internally
     // This wil just be for a nomally incident x-directed plane wave
-    // TODO make more general
-    // TODO change to complex for ease of use in calculations
+    // TODO: make more general
+    // TODO: change to complex for ease of use in calculations
 
     Node E(1, 0, 0);
     //this->vrhs_internal = std::vector<double>(this->edges.size(), 0);
@@ -70,8 +70,8 @@ void MoMSolverMPI::calculateJMatrix()
     // Using Eigen3
 
     // First lets put the values into relevant Eigen datatypes
-    // TODO After OpenMP switch all to Matrices to Eigen Datatypes
-    // TODO change function name
+    // TODO: After OpenMP switch all to Matrices to Eigen Datatypes
+    // TODO: change function name
     // Eigen::MatrixXcd m(this->edges.size(), this->edges.size()); 
 
     // for(int i = 0; i < this->edges.size(); i++)
@@ -490,7 +490,7 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     Cblacs_pinfo(&rank, &size);
 
     // For testing
-    // TODO delete
+    // TODO: delete
     std::string file_name = std::to_string(rank) + ".txt";
     std::ofstream file;
     file.open(file_name);
@@ -536,26 +536,27 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
 
     // Lets define the size of Zmn
     // Lets also define the block size
-    int matrix_size = 4; // TODO Change
-    int n_block_row = 2; // TODO Change
-    int n_block_col = 2; // TODO Change
+    int matrix_size = 4; // TODO: Change
+    int n_block_row = 2; // TODO: Change
+    int n_block_col = 2; // TODO: Change
 
     // Lets get the BLACS context
     int context;
     Cblacs_get(0, 0, &context);
 
     // Lets create a process grid
-    // TODO change to dynamic bassed on procs
+    // TODO: change to dynamic bassed on procs
     int proc_rows = 2;
     int proc_cols = 2;
     Cblacs_gridinit(&context, "Row-major", proc_rows, proc_cols); 
 
-    // TODO change procrows and proccols
+    // TODO: change procrows and proccols
     int procrows;
     int proccols;
     int my_row;
     int my_col;
     Cblacs_gridinfo(context, &procrows, &proccols, &my_row, &my_col);
+    // std::cout << rank << " "<< my_row << " "<< my_col << std::endl;
     
     // Print out grid pattern of processes
     // for (int r = 0; r < proc_rows; ++r) {
@@ -578,15 +579,16 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     // std::cout << "Rank: " << rank << " Rows: " << local_rows << " Cols: " << local_cols << std::endl;
 
     // Vrhs
-    //int one = 1; TODO delete
-    int v_local_rows = numroc_(&vector_size, &n_v_block_row, &my_row, &zero, &procrows);
-    int v_local_cols = numroc_(1, &n_v_block_col, &my_col, &zero, &proccols);
-    // std::cout << "Rank: " << rank << " row: " << v_local_rows << "--" << v_local_cols << std::endl;
+    int o = 1; // TODO: delete
+    int v_local_rows = numroc_(&matrix_size, &n_block_row, &my_row, &zero, &procrows);
+    int v_local_cols = numroc_(&o, &n_block_col, &my_col, &zero, &proccols);
+    file << "Rank: " << rank << " row: " << v_local_rows << "--" << v_local_cols << std::endl;
+    file << my_row << " " << my_col << std::endl;
 
     // Create the local part of Zmn per process
     std::complex<double> *A_local;
     A_local = new std::complex<double>[local_rows * local_cols];
-    // TODO maybe have to init matrix to zero;
+    // TODO: maybe have to init matrix to zero;
 
     // Lets send the global Zmn to the local Zmn's in a block cyclic manner
     int sendr = 0, sendc = 0, recvr = 0, recvc = 0;
@@ -633,50 +635,60 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     //     file << std::endl;
     // } 
 
-    // TODO create local B portion
-
+    // TODO: create local B portion
+    std::complex<double> B_local[v_local_rows];
     // Now lets distribute Vrhs
-    // TODO finish the distribution
-    // sendr = 0;
-    // sendc = 0;
-    // recvr = 0;
-    // recvc = 0;
-    // for (int r = 0; r < matrix_size; r += n_block_row, sendr=(sendr+1)%proc_rows) {
-    //     sendc = 0;
-    //     // Number of rows to be sent
-    //     // Is this the last row block?
-    //     int nr = n_block_row;
-    //     if (matrix_size-r < n_block_row)
-    //         nr = matrix_size-r;
- 
-    //     for (int c = 0; c < matrix_size; c += n_block_col, sendc=(sendc+1)%proccols) {
-    //         // Number of cols to be sent
-    //         // Is this the last col block?
-    //         int nc = n_block_col;
-    //         if (matrix_size-c < n_block_col)
-    //             nc = matrix_size-c;
- 
-    //         if (rank == 0) {
-    //             // Send a nr-by-nc submatrix to process (sendr, sendc)
-    //             Czgesd2d(context, nr, nc, *A_glob+matrix_size*c+r, matrix_size, sendr, sendc);
-    //         }
- 
-    //         if (my_row == sendr && my_col == sendc) {
-    //             // Receive the same data
-    //             // The leading dimension of the local matrix is nrows!
-    //             Czgerv2d(context, nr, nc, A_local+local_rows*recvc+recvr, local_rows, 0, 0);
-    //             recvc = (recvc+nc)%local_cols;
-    //         }
- 
-    //     }
- 
-    //     if (my_row == sendr)
-    //         recvr = (recvr+nr)%local_rows;
-    // }    
+    // TODO: finish dynamic distrib
+
+    int send_row = 0;
+    int send_col = 0;
+    int rec_row = 0;
+    int rec_col = 0;
+    int v_local_index = 0;
+
+    for(int i = 0; i < matrix_size; i += n_block_row)
+    {
+        // Check if these are the last rows
+        
+        int num_rows = n_block_row;
+        if(matrix_size - i < n_block_row)
+        {
+            num_rows = matrix_size - i;
+        }
+
+        // Switch back to sending to (0,0)
+        if(send_row > proc_rows)
+        {
+            send_row = 0;
+        }
+
+        if(rank == 0)
+        {
+            // SEND
+            // TODO: Potential problem at B_glob
+            Czgesd2d(context, num_rows, 1, &B_glob[i], matrix_size, send_row, send_col);
+
+        }
+
+        if(my_row == send_row && my_col == send_col)
+        {
+            // RECEIVE
+            // TODO: Potential problem at B_local
+            Czgerv2d(context, num_rows, 1, &B_local[i * v_local_index], local_rows, 0, 0);
+            v_local_index++;
+        }
+        send_row++;
+    }
 
     // Lets print vrhs
-    // TODO finish here
-    // check for different sizes it distribs correctly
+    // Print local B to file
+    // if(v_local_cols > 0)
+    // {
+    //     for(int i = 0; i < v_local_rows; i++)
+    //     {
+    //         file << "b: " << B_local[i] << std::endl;
+    //     }
+    // }
 
     // Lets solve the equation 
     // Lets first get the descriptions
@@ -685,10 +697,22 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     int lda = std::max(1, local_rows);
     int desc[9]; 
 
-    descinit_(desc, &matrix_size, &matrix_size, &local_rows, &local_cols, &zero, &zero, &context, &lda, &info);
+    descinit_(desc, &matrix_size, &matrix_size, &n_block_row, &n_block_col, &zero, &zero, &context, &lda, &info);
 
     // Then for Vrhs
-    // TODO Finish here
+    // TODO: Finish here
+    int v_lda = std::max(1, v_local_rows);
+    int v_desc[9];
+
+    descinit_(v_desc, &matrix_size, &o, &n_block_row, &n_block_col, &zero, &zero, &context, &v_lda, &info);
+
+    // file << "DESC" << std::endl;
+    // for(int i = 0; i < 9; i++)
+    // {
+    //     file << v_desc[i] << std::endl;
+    // }
+    // file << "DESC" << std::endl;
+
 
     // Now the LU decomposition
     int one = 1;
@@ -696,7 +720,7 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     pzgetrf_(&matrix_size, &matrix_size, A_local, &one, &one, desc, local_pivot, &info); 
 
     // Print after LU decomp the local matrices
-    // TODO check against matlab
+    // TODO: check against matlab
     // for(int i = 0; i < 2; i++)
     // {
     //     for(int j = 0; j < 2; j++)
@@ -707,18 +731,76 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     // }
 
     // Lets solve for I
-    // TODO finish here
+    // TODO: finish here
     // pzgetrs
 
+    pzgetrs_("T", &matrix_size, &one, A_local, &one, &one, desc, local_pivot, B_local, &one, &one, v_desc, &info);
+
     // Lets print the solved vector
+    if(v_local_cols > 0)
+    {   
+        file << "ANSWER" << std::endl;
+        for(int i = 0; i < v_local_rows; i++)
+        {
+            file << B_local[i] << std::endl;
+        }
+        file << "ANSWER" << std::endl;
+    }
 
     // Lets gather the solved vector
-    // TODO finish here
+    // TODO: finish here
     // get from each process in block cyclic manner
+    send_row = 0;
+    v_local_index = 0;
+    std::complex<double> ans[matrix_size];
 
+    for(int i = 0; i < matrix_size; i += n_block_row)
+    {
+        // Check if these are the last rows
+        
+        int num_rows = n_block_row;
+        if(matrix_size - i < n_block_row)
+        {
+            num_rows = matrix_size - i;
+        }
+
+        // Switch back to sending to (0,0)
+        if(send_row > proc_rows)
+        {
+            send_row = 0;
+        }
+
+        if(my_row == send_row && my_col == send_col)
+        {
+            // SEND
+            // TODO: Potential problem at B_local
+            file << "HERE" << std::endl;
+            Czgesd2d(context, num_rows, 1, &B_local[i * v_local_index], matrix_size, 0, 0);
+            v_local_index++;
+        }
+
+        if(rank == 0)
+        {
+            // RECEIVE
+            // TODO: Potential problem at B_glob
+            file << "I: " << i << std::endl;
+            Czgerv2d(context, num_rows, 1, &ans[i], local_rows, send_row, send_col);
+        }
+        send_row++;
+    }
+
+    if(rank == 0)
+    {
+        file << "COLLATE" << std::endl;
+        for(int i = 0; i < matrix_size; i++)
+        {
+            file << ans[i] << std::endl;
+        }
+        file << "COLLATE" << std::endl;
+    }
 
     // Lets print the solved vector
-    // TODO finish here
+    // TODO: finish here
     // check against matlab
 }
 
@@ -772,9 +854,9 @@ std::vector<std::complex<double>> MoMSolverMPI::calculateIpq(int p, int q)
     std::vector<std::complex<double>> i_vector;
 
 
-    if(p == 19823) // TODO change to p == q && SING == True
+    if(p == 19823) // TODO: change to p == q && SING == True
     {
-        // TODO Add singularity treatment
+        // TODO: Add singularity treatment
         int x = 0;
     }
     else
