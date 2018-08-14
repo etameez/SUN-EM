@@ -258,7 +258,17 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
         // Lets resize the internal Zmn
         // std::vector<std::complex<double>> row_vector(this->edges.size(), 0);
         // this->z_mn = std::vector<std::vector<std::complex<double>>>(this->edges.size(), row_vector);
-        this->z_mn.resize(this->edges.size(), this->edges.size());
+        // this->z_mn.resize(this->edges.size(), this->edges.size());
+        this->zmn = new std::complex<double>[this->edges.size() * this->edges.size()];
+
+        for(int i = 0; i < this->edges.size(); i++)
+        {
+            for(int j = 0; j < this->edges.size(); j++)
+            {
+                this->zmn[j * this->edges.size() + i] = std::complex<double>(0, 0); 
+            }
+        }
+        
 
         // TEST
         // for(int i = 0; i < all_zmn_data.size(); i++)
@@ -271,13 +281,23 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
         {
             index = i * 4;
             std::complex<double> temp(all_zmn_data[index + 2], all_zmn_data[index + 3]);
-            this->z_mn((int)all_zmn_data[index], (int)all_zmn_data[index + 1]) += temp; 
+            //this->z_mn((int)all_zmn_data[index], (int)all_zmn_data[index + 1]) += temp;
+            this->zmn[(int)all_zmn_data[index] * this->edges.size() + (int)all_zmn_data[index+1]] += temp;
+
         }
         // for(int i = 0; i < this->edges.size(); i++)
         // {
         //     for(int j = 0; j < this->edges.size(); j++)
         //     {
         //         std::cout << this->z_mn[i][j];
+        //     }
+        //     std::cout << std::endl;
+        // }
+        // for(int i = 0; i < this->edges.size(); i++)
+        // {
+        //     for(int j = 0; j < this->edges.size(); j++)
+        //     {
+        //         std::cout << this->zmn[j*this->edges.size()+i];
         //     }
         //     std::cout << std::endl;
         // }
@@ -294,6 +314,9 @@ int MoMSolverMPI::numValuesMPI(int num_procs, int rank, int data_length)
 std::vector<double> MoMSolverMPI::workMPI(std::vector<int> p_values) // RENAME
 {
     // See MoMSolverMPI::calculateZmnByFace() for full commentary
+    // TODO: Delete this
+    // No longer needed. Kept as comoparison with OpenMP
+    // OpenMP is faster so this can be deleted
 
     std::vector<double> partial_zmn;
     for(int i = 0; i < p_values.size(); i++)
@@ -494,23 +517,21 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     int one = 1;
 
 
-    std::complex<double> ZMN[this->edges.size()][this->edges.size()];
+    //std::complex<double> ZMN[this->edges.size()][this->edges.size()];
     std::complex<double> VRHS[this->edges.size()];
     if(rank == 0)
     {
-        for(int i = 0; i < this->edges.size(); i++)
-        {
-            for(int j = 0; j < this-> edges.size(); j++)
-            {
-                ZMN[i][j] = this->z_mn(i, j);
-            }
-        }
+        // for(int i = 0; i < this->edges.size(); i++)
+        // {
+        //     for(int j = 0; j < this-> edges.size(); j++)
+        //     {
+        //         ZMN[i][j] = this->z_mn(i, j);
+        //     }
+        // }
 
         for(int i = 0; i < this->edges.size(); i++)
         {
             VRHS[i] = this->vrhs_internal(i);
-
-            
         }
     }
 
@@ -587,7 +608,7 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
 
     // Lets create a process grid
     // TODO: change to dynamic bassed on procs (sqrt idea)
-    int proc_rows = 2;
+    int proc_rows = 4;
     int proc_cols = 2;
     Cblacs_gridinit(&context, "Row-major", proc_rows, proc_cols); 
 
@@ -649,7 +670,7 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
  
             if (rank == 0) {
                 // Send a nr-by-nc submatrix to process (sendr, sendc)
-                Czgesd2d(context, nr, nc, *ZMN+matrix_size*c+r, matrix_size, sendr, sendc);
+                Czgesd2d(context, nr, nc, this->zmn+matrix_size*c+r, matrix_size, sendr, sendc);
             }
  
             if (my_row == sendr && my_col == sendc) {
@@ -846,6 +867,13 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     // Lets print the solved vector
     // TODO: finish here
     // check against matlab
+    if(rank == 0)
+    {
+        for(int i = 0; i < matrix_size; i++)
+        {
+            std::cout << ans[i] << std::endl;
+        }
+    }
 }
 
 std::vector<Node> MoMSolverMPI::calculateAAndPhi(int p, int q)
