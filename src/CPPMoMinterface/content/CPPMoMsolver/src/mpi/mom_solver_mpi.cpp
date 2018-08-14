@@ -871,13 +871,13 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     // Lets print the solved vector
     // TODO: finish here
     // check against matlab
-    if(rank == 0)
-    {
-        for(int i = 0; i < matrix_size; i++)
-        {
-            std::cout << ans[i] << std::endl;
-        }
-    }
+    // if(rank == 0)
+    // {
+    //     for(int i = 0; i < matrix_size; i++)
+    //     {
+    //         std::cout << ans[i] << std::endl;
+    //     }
+    // }
 }
 
 std::vector<Node> MoMSolverMPI::calculateAAndPhi(int p, int q)
