@@ -39,10 +39,12 @@ class MoMSolver
         std::vector<Triangle> triangles;
         std::vector<Edge> edges;
         std::vector<double> vrhs;
-        std::vector<double> vrhs_internal;
+        // std::vector<double> vrhs_internal;
         std::map<std::string, std::string> const_map;
         std::vector<std::array<double, 4>> quadrature_weights_values;
-        std::vector<std::vector<std::complex<double>>> z_mn; 
+        // std::vector<std::vector<std::complex<double>>> z_mn; 
+        Eigen::MatrixXcd z_mn; 
+        Eigen::VectorXcd vrhs_internal;
         std::complex<double> j;
         double k; 
         double frequency;

@@ -28,7 +28,7 @@ int main()
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     
-    std::string path = "../../../../../examples/example-10/pec_plate.mom";
+    std::string path = "../../../../../examples/example-10/pec_plate_fine_mesh.mom";
     MoMFileReader reader(path); 
     MoMSolverMPI solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
 

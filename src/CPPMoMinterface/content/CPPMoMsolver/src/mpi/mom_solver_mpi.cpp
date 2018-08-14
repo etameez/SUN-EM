@@ -295,9 +295,9 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
         //     }
         //     std::cout << std::endl;
         // }
-        // for(int i = 0; i < this->edges.size(); i++)
+        // for(int i = 0; i < 10; i++)
         // {
-        //     for(int j = 0; j < this->edges.size(); j++)
+        //     for(int j = 0; j < 10; j++)
         //     {
         //         std::cout << this->zmn[j*this->edges.size()+i];
         //     }

@@ -80,7 +80,6 @@ void MoMSolver::calculateZmnByFace()
     // As of 04 AUgust 2018, this takes 1.3 seconds
     // Lets use the high precision clock from <chrono> to be accurate
     // std::chrono::high_resolution_clock::time_point z_mn_time_start = std::chrono::high_resolution_clock::now();
-    this->z_mn_timer.startTimer();
     // TIME PROFILE
     // After 1000 iterations
     // ---- Total Times ----
@@ -115,8 +114,9 @@ void MoMSolver::calculateZmnByFace()
     // It is of size mxn where m == n == number of edges
     // The number of edges is defined in const_map
     //std::complex<double> z_mn[this->edges.size()][this->edges.size()] = {std::complex<double>(0,0)}; 
-    std::vector<std::complex<double>> row_vector(this->edges.size(), 0);
-    this->z_mn = std::vector<std::vector<std::complex<double>>>(this->edges.size(), row_vector);
+    // std::vector<std::complex<double>> row_vector(this->edges.size(), 0);
+    // this->z_mn = std::vector<std::vector<std::complex<double>>>(this->edges.size(), row_vector);
+    this->z_mn.resize(this->edges.size(), this->edges.size());
 
     for(int p = 0; p < this->triangles.size(); p++)
     {
@@ -147,9 +147,7 @@ void MoMSolver::calculateZmnByFace()
 	    // then it is trivial to see that A_3 will be used since the free vertex is vertex 3
 	    // Remember that in the mesh, triangles will rarely look like the illustration so it
 	    // is necessary to check for the free vertex in code rather than pre-empting what it will be
-        this->a_phi_timer.startTimer();
         std::vector<Node> a_and_phi = this->calculateAAndPhi(p, q);
-        this->a_phi_timer.endTimer();
 
 	        // Now let loop over the source triangle edges.
 	        // It is important to note that since the only edges associated with a
@@ -256,8 +254,8 @@ void MoMSolver::calculateZmnByFace()
 		            // the formula needs to be tweaked as such
 		            // Zmn = Zmn + edge_length_of_observation_triangle *
 		            //             ((j * omega * A * rho_c / 2) - phi * phi_sign)
-                    this->z_mn[this->triangles[p].getEdges()[r]][this->triangles[q].getEdges()[e]] =
-                    this->z_mn[this->triangles[p].getEdges()[r]][this->triangles[q].getEdges()[e]] +
+                    this->z_mn(this->triangles[p].getEdges()[r], this->triangles[q].getEdges()[e]) =
+                    this->z_mn(this->triangles[p].getEdges()[r], this->triangles[q].getEdges()[e]) +
                         this->edges[this->triangles[p].getEdges()[r]].getLength() *
                             (this->j * 
                             this->omega *
@@ -269,16 +267,6 @@ void MoMSolver::calculateZmnByFace()
             } 
         }
     }
-    // Lets end the clock now
-    std::chrono::high_resolution_clock::time_point z_mn_time_end = std::chrono::high_resolution_clock::now();
-
-    // Lets get the duration for Zmn to fill
-    this->z_mn_timer.endTimer();
-
-    // Now lets do some time profiling 
-    this->z_mn_time = this->z_mn_timer.saveTime();
-    this->i_time = this->i_timer.saveTime();
-    this->a_phi_time = this->a_phi_timer.saveTime();
 
     // for(int i = 0; i < this->edges.size(); i++)
     // {
@@ -298,13 +286,14 @@ void MoMSolver::calculateVrhsInternally()
     // TODO change to complex for ease of use in calculations
 
     Node E(1, 0, 0);
-    this->vrhs_internal = std::vector<double>(this->edges.size(), 0);
+    // this->vrhs_internal = std::vector<double>(this->edges.size(), 0);
+    this->vrhs_internal.resize(this->edges.size());
 
     for(int i = 0; i < this->edges.size(); i++)
     {
-        this->vrhs_internal[i] = E.getDotNoComplex(this->edges[i].getRhoCPlus()) / 2 +
+        this->vrhs_internal(i) = E.getDotNoComplex(this->edges[i].getRhoCPlus()) / 2 +
                                  E.getDotNoComplex(this->edges[i].getRhoCMinus()) / 2;
-        this->vrhs_internal[i] = this->vrhs_internal[i] * this->edges[i].getLength();  
+        this->vrhs_internal(i) = this->vrhs_internal(i) * this->edges[i].getLength();  
     }
 }
 
@@ -317,28 +306,15 @@ void MoMSolver::calculateJMatrix()
     // First lets put the values into relevant Eigen datatypes
     // TODO After OpenMP switch all to Matrices to Eigen Datatypes
     // TODO change function name
-    Eigen::MatrixXcd m(this->edges.size(), this->edges.size()); 
 
-    for(int i = 0; i < this->edges.size(); i++)
-    {
-        for(int j = 0; j < this->edges.size(); j++)
-        {
-            m(i, j) = this->z_mn[i][j];
-        }
-    }
-
-    Eigen::VectorXcd v(this->edges.size());
-
-    for(int i = 0; i < this->vrhs_internal.size(); i++)
-    {
-        std::complex<double> temp(this->vrhs_internal[i]);
-        v(i) = temp;
-    }
 
     // Now lets solve for I
-    this->j_timer.startTimer();
-    Eigen::VectorXcd i_lhs = m.partialPivLu().solve(v);
-    this->j_timer.endTimer();
+    Eigen::VectorXcd i_lhs = this->z_mn.partialPivLu().solve(this->vrhs_internal);
+
+    // for(int i = 0; i < this->edges.size(); i++)
+    // {
+    //     std::cout << i_lhs(i) << std::endl;
+    // }
 }
 
 void MoMSolver::timeProfiler(int num_iter)
@@ -369,9 +345,7 @@ std::vector<Node> MoMSolver::calculateAAndPhi(int p, int q)
     // The formulae are equations 32 and 33 in RWG80
     // First, lets get the four I's calculated in calculateIpq 
     // Remember, the vector is ordered in [Ipq Ipq_xi Ipq_eta Ipq_zeta]
-    this->i_timer.startTimer();
     std::vector<std::complex<double>> i_vector = this->calculateIpq(p, q);
-    this->i_timer.endTimer();
 
     // There are three values for the magnetic vector potential (Apq) and one for the scalar
     // potential(Phipq)
