@@ -57,14 +57,16 @@ void MoMSolverMPI::calculateVrhsInternally()
 
     for(int i = 0; i < this->edges.size(); i++)
     {
-        this->vrhs_internal(i) = E.getDotNoComplex(this->edges[i].getRhoCPlus()) / 2 +
+        this->vrhs_internal[i] = E.getDotNoComplex(this->edges[i].getRhoCPlus()) / 2 +
                                  E.getDotNoComplex(this->edges[i].getRhoCMinus()) / 2;
-        this->vrhs_internal(i) = this->vrhs_internal[i] * this->edges[i].getLength();  
+        this->vrhs_internal[i] = this->vrhs_internal[i] * this->edges[i].getLength();  
     }
 }
 
 void MoMSolverMPI::calculateJMatrix()
 {
+    // TODO: May need to be deleted. Need to check if 1 proc works /w scalapack
+    // No longer needed due to SCCALAPACK
     // Lets calcualte the I vector
     // LU-decomposition /w partial pivot
     // Using Eigen3
@@ -92,9 +94,9 @@ void MoMSolverMPI::calculateJMatrix()
 
     // Now lets solve for I
 
-    omp_set_num_threads(this->num_threads * 4);
-    std::cout << "num threads: " <<Eigen::nbThreads() << std::endl;
-    Eigen::VectorXcd i_lhs = this->z_mn.partialPivLu().solve(this->vrhs_internal);
+    // omp_set_num_threads(this->num_threads * 4);
+    // std::cout << "num threads: " <<Eigen::nbThreads() << std::endl;
+    // Eigen::VectorXcd i_lhs = this->z_mn.partialPivLu().solve(this->vrhs_internal);
 
     // for(int i = 0; i < i_lhs.size(); i++)
     // {
@@ -518,22 +520,22 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
 
 
     //std::complex<double> ZMN[this->edges.size()][this->edges.size()];
-    std::complex<double> VRHS[this->edges.size()];
-    if(rank == 0)
-    {
-        // for(int i = 0; i < this->edges.size(); i++)
-        // {
-        //     for(int j = 0; j < this-> edges.size(); j++)
-        //     {
-        //         ZMN[i][j] = this->z_mn(i, j);
-        //     }
-        // }
+    // std::complex<double> VRHS[this->edges.size()];
+    // if(rank == 0)
+    // {
+    //     // for(int i = 0; i < this->edges.size(); i++)
+    //     // {
+    //     //     for(int j = 0; j < this-> edges.size(); j++)
+    //     //     {
+    //     //         ZMN[i][j] = this->z_mn(i, j);
+    //     //     }
+    //     // }
 
-        for(int i = 0; i < this->edges.size(); i++)
-        {
-            VRHS[i] = this->vrhs_internal(i);
-        }
-    }
+    //     for(int i = 0; i < this->edges.size(); i++)
+    //     {
+    //         VRHS[i] = this->vrhs_internal(i);
+    //     }
+    // }
 
     // if(rank == 0)
     // {
@@ -727,7 +729,7 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
         {
             // SEND
             // TODO: Potential problem at B_glob
-            Czgesd2d(context, num_rows, 1, &VRHS[i], matrix_size, send_row, send_col);
+            Czgesd2d(context, num_rows, 1, &this->vrhs_internal[i], matrix_size, send_row, send_col);
 
         }
 
