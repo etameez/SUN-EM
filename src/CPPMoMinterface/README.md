@@ -89,7 +89,7 @@ Or
 21. make
 22. mpiexec -np num_procs ./mom_mpi 
 
-###Using ATLAS threaded libraries explicitly
+### Using ATLAS threaded libraries explicitly
 1. Do the same as above, but stop at step 20
 2. cmake -DMPI=ON -DPARALLEL=ON ..
 3. make
