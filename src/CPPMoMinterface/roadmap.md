@@ -18,7 +18,7 @@
 ## HPC
 - [X] Integrate MPI
 - [X] Use MPI to hasten Zmn calculations
-- [ ] Use OpenMP to hasten Ipq calculations
+- [X] Use OpenMP to hasten Ipq calculations
 - [ ] Use OpenMP to hasten Amn and Phimn calculations
-- [ ] Use OpenMP to hasten Eigen matrix calculation of In
-- [ ] Use SCALAPACK to hasten In calculation with MPI
+- [X] Use OpenMP to hasten Eigen matrix calculation of In
+- [X] Use SCALAPACK to hasten In calculation with MPI
