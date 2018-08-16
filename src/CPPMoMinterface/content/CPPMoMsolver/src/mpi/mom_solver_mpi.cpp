@@ -407,7 +407,7 @@ std::vector<double> MoMSolverMPI::workMPI(std::vector<int> p_values) // RENAME
     return partial_zmn;
 }
 
-std::vector<double> MoMSolverMPI::workMPIMP(std::vector<int> p_values) // RENAME
+std::vector<double> MoMSolverMPI::workMPIMP(std::vector<int> p) // RENAME
 {
     // See MoMSolverMPI::calculateZmnByFace() for full commentary
     std::vector<double> zmn;
@@ -416,14 +416,12 @@ std::vector<double> MoMSolverMPI::workMPIMP(std::vector<int> p_values) // RENAME
     {
         std::vector<double> partial_zmn;
 
-        #pragma omp for nowait
+        #pragma omp for nowait collapse(2)
         for(int i = 0; i < p_values.size(); i++)
         {
-            int p = p_values[i];
-
             for(int q = 0; q < this->triangles.size(); q++)
             {
-                std::vector<Node> a_and_phi = this->calculateAAndPhi(p, q);
+                std::vector<Node> a_and_phi = this->calculateAAndPhi(p[i], q);
 
                 for(int e = 0; e < this->triangles[q].getEdges().size(); e++)
                 {
@@ -457,19 +455,19 @@ std::vector<double> MoMSolverMPI::workMPIMP(std::vector<int> p_values) // RENAME
                         a_pq = a_pq.getScalarMultiply(-1.0);
                     }
 
-                    for(int r = 0; r < this->triangles[p].getEdges().size(); r++)
+                    for(int r = 0; r < this->triangles[p[i]].getEdges().size(); r++)
                     {
                         Node rho_c;
                         double phi_sign;
 
-                        if(this->edges[this->triangles[p].getEdges()[r]].getMinusTriangleIndex() == p)
+                        if(this->edges[this->triangles[p[i]].getEdges()[r]].getMinusTriangleIndex() == p)
                         {
-                            rho_c = this->edges[this->triangles[p].getEdges()[r]].getRhoCMinus();
+                            rho_c = this->edges[this->triangles[p[i]].getEdges()[r]].getRhoCMinus();
                             phi_sign = -1;
                         }
                         else
                         {
-                            rho_c = this->edges[this->triangles[p].getEdges()[r]].getRhoCPlus();
+                            rho_c = this->edges[this->triangles[p[i]].getEdges()[r]].getRhoCPlus();
                             phi_sign = 1;
                         }
 
@@ -477,12 +475,12 @@ std::vector<double> MoMSolverMPI::workMPIMP(std::vector<int> p_values) // RENAME
                         // The indices of the partial Zmn value needs to be returned aswell
                         // so the main process knows where to put it
                         // Therefore, lets first push the indices to the vector
-                        partial_zmn.push_back(this->triangles[p].getEdges()[r]);
+                        partial_zmn.push_back(this->triangles[p[i]].getEdges()[r]);
                         partial_zmn.push_back(this->triangles[q].getEdges()[e]);
 
                         // Now lets calculate the partial Zmn value
                         std::complex<double> temp_zmn_value = 
-                        this->edges[this->triangles[p].getEdges()[r]].getLength() *
+                        this->edges[this->triangles[p[i]].getEdges()[r]].getLength() *
                         (this->j * 
                             this->omega *
                             a_pq.getDot(rho_c) / 
