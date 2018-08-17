@@ -39,7 +39,7 @@ MoMSolverMPI::MoMSolverMPI(std::vector<Node> nodes,
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    this->num_threads = 4 / size;
+    // this->num_threads = 2;//4 / size;
     //std::cout << "Set threads as: " << this->num_threads << std::endl;
 }
 
@@ -411,13 +411,14 @@ std::vector<double> MoMSolverMPI::workMPIMP(std::vector<int> p) // RENAME
 {
     // See MoMSolverMPI::calculateZmnByFace() for full commentary
     std::vector<double> zmn;
-    omp_set_num_threads(this->num_threads);
+    // omp_set_num_threads(this->num_threads);
     #pragma omp parallel
     {
+        // std::cout << omp_get_num_threads() << std::endl;
         std::vector<double> partial_zmn;
 
         #pragma omp for nowait collapse(2)
-        for(int i = 0; i < p_values.size(); i++)
+        for(int i = 0; i < p.size(); i++)
         {
             for(int q = 0; q < this->triangles.size(); q++)
             {
@@ -460,7 +461,7 @@ std::vector<double> MoMSolverMPI::workMPIMP(std::vector<int> p) // RENAME
                         Node rho_c;
                         double phi_sign;
 
-                        if(this->edges[this->triangles[p[i]].getEdges()[r]].getMinusTriangleIndex() == p)
+                        if(this->edges[this->triangles[p[i]].getEdges()[r]].getMinusTriangleIndex() == p[i])
                         {
                             rho_c = this->edges[this->triangles[p[i]].getEdges()[r]].getRhoCMinus();
                             phi_sign = -1;
@@ -869,13 +870,13 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     // Lets print the solved vector
     // TODO: finish here
     // check against matlab
-    if(rank == 0)
-    {
-        for(int i = 0; i < matrix_size; i++)
-        {
-            std::cout << ans[i] << std::endl;
-        }
-    }
+    // if(rank == 0)
+    // {
+    //     for(int i = 0; i < matrix_size; i++)
+    //     {
+    //         std::cout << ans[i] << std::endl;
+    //     }
+    // }
 }
 
 std::vector<Node> MoMSolverMPI::calculateAAndPhi(int p, int q)
