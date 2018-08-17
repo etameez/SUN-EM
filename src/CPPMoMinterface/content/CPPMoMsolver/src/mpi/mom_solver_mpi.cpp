@@ -133,7 +133,7 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
     int rank;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    std::cout << "At ZMN" << std::endl;
+    
 
     // Lets load the quadrature weights and values for all processes
     // Remember that each process has its own copy of this and most following
@@ -200,11 +200,11 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
             sub_p_values.push_back(i);
         }
     }
-    std::cout << "After P alloc" << std::endl;
+    
     // Lets calculate all the portions of Zmn specified by the processes p values
     //std::vector<double> sub_zmn = this->workMPI(sub_p_values);
     std::vector<double> sub_zmn = this->workMPIMP(sub_p_values);
-    std::cout << "after work" << std::endl;
+    
     // Lets gather all the vector sizes
     // Lets first create a vector to store the sizes 
     // It is important to remember to resize the vector
@@ -219,7 +219,7 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
     // This is important because to receive the actual data, MPI needs to be told
     // how many values it has to receive.
     MPI_Gather(&z_mn_size, 1, MPI_INT, &proc_vector_size[0], 1, MPI_INT, 0, MPI_COMM_WORLD);
-    std::cout << "after gather" << std::endl;
+
     // Now that the size of the data is available to the root process
     // Lets gather all the data
     // First lets define two vectors
@@ -227,6 +227,7 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
     // The seconds is to store the displacements of the data
     std::vector<double> all_zmn_data;
 
+    // TODO: Comment this
     if(rank != 0)
     {
         MPI_Send(&sub_zmn[0], sub_zmn.size(), MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
@@ -243,32 +244,26 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
                 this->zmn[j * this->edges.size() + i] = std::complex<double>(0, 0); 
             }
         }
-
-        for(int i = 1; i < size; i++)
+        
+        if(size > 1)
         {
-            all_zmn_data.clear();
-            all_zmn_data.resize(proc_vector_size[i]);
-            MPI_Recv(&all_zmn_data[0], proc_vector_size[i], MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-            // std::cout << "_____________________" << std::endl;
-            // for(int j = 0; j < all_zmn_data.size(); j++)
-            // {
-            //     std::cout << all_zmn_data[j] << std::endl;
-            // }
-            // std::cout << "_____________________" << std::endl;
-
-
-
-            int index;
-            for(int j = 0; j < all_zmn_data.size() / 4; j++)
+            for(int i = 1; i < size; i++)
             {
-                index = j * 4;
-                std::complex<double> temp(all_zmn_data[index + 2], all_zmn_data[index + 3]);
-                //this->z_mn((int)all_zmn_data[index], (int)all_zmn_data[index + 1]) += temp;
-                this->zmn[(int)all_zmn_data[index] * this->edges.size() + (int)all_zmn_data[index+1]] += temp;
+                all_zmn_data.clear();
+                all_zmn_data.resize(proc_vector_size[i]);
+                MPI_Recv(&all_zmn_data[0], proc_vector_size[i], MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+                int index;
+                for(int j = 0; j < all_zmn_data.size() / 4; j++)
+                {
+                    index = j * 4;
+                    std::complex<double> temp(all_zmn_data[index + 2], all_zmn_data[index + 3]);
+                    this->zmn[(int)all_zmn_data[index] * this->edges.size() + (int)all_zmn_data[index+1]] += temp;
+
+                }
             }
         }
+
         int index;
         for(int j = 0; j < sub_zmn.size() / 4; j++)
         {
@@ -276,110 +271,7 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
             std::complex<double> temp(sub_zmn[index + 2], sub_zmn[index + 3]);
             //this->z_mn((int)all_zmn_data[index], (int)all_zmn_data[index + 1]) += temp;
             this->zmn[(int)sub_zmn[index] * this->edges.size() + (int)sub_zmn[index+1]] += temp;
-
         }
-
-    }
-
-
-
-
-
-
-
-
-
-
-    // std::vector<int> disps;
-
-    // Lets resize the disps
-    // disps.resize(size);
-
-    // Now lets fill in disps
-    // for(int i = 0; i < size; i++)
-    // {
-    //     if(i == 0)
-    //     {
-    //         // The first displacement is always 0
-    //         disps[i] = 0;
-    //     }
-    //     else
-    //     {
-    //         disps[i] = disps[i - 1] + proc_vector_size[i - 1];
-    //     }
-    // }
-    // std::cout << disps[size - 1] + proc_vector_size[size - 1] << std::endl;
-    // std::cout << "before allZMN resize" << std::endl;
-    // Lets resize all_zmn_data but just for the root process
-    // MEMORY ERRORS ON LARGE MATRICES 5000 unknowns
-    // TODO: FIX
-    // if(rank == 0)
-    // {
-    //     all_zmn_data.resize(disps[size - 1] + proc_vector_size[size - 1]);
-    // }
-
-    // // Lets now gather all the Zmn sub data into the main process
-    // MPI_Gatherv(&sub_zmn[0], sub_zmn.size(), MPI_DOUBLE, &all_zmn_data[0],
-    //              &proc_vector_size[0], &disps[0], MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-
-    std::cout << "after gatherv" << std::endl;
-    // TEST
-    // TODO: DELETE
-    // std::vector<double>().swap(sub_zmn);
-
-    // Now lets fill all of Zmn
-    if(rank == 0)
-    {
-        int x = 0;
-        // Lets resize the internal Zmn
-        // std::vector<std::complex<double>> row_vector(this->edges.size(), 0);
-        // this->z_mn = std::vector<std::vector<std::complex<double>>>(this->edges.size(), row_vector);
-        // this->z_mn.resize(this->edges.size(), this->edges.size());
-        // std::cout << "BEFORE ALLOCATION" << std::endl;
-        // this->zmn = new std::complex<double>[this->edges.size() * this->edges.size()];
-        // std::cout << "AFTER ALLOCATION" << std::endl;
-
-        // for(int i = 0; i < this->edges.size(); i++)
-        // {
-        //     for(int j = 0; j < this->edges.size(); j++)
-        //     {
-        //         this->zmn[j * this->edges.size() + i] = std::complex<double>(0, 0); 
-        //     }
-        // }
-        
-
-        // TEST
-        // for(int i = 0; i < all_zmn_data.size(); i++)
-        // {
-        //     std::cout << all_zmn_data
-        // }
-
-        // int index;
-        // for(int i = 0; i < all_zmn_data.size() / 4; i++)
-        // {
-        //     index = i * 4;
-        //     std::complex<double> temp(all_zmn_data[index + 2], all_zmn_data[index + 3]);
-        //     //this->z_mn((int)all_zmn_data[index], (int)all_zmn_data[index + 1]) += temp;
-        //     this->zmn[(int)all_zmn_data[index] * this->edges.size() + (int)all_zmn_data[index+1]] += temp;
-
-        // }
-        // for(int i = 0; i < this->edges.size(); i++)
-        // {
-        //     for(int j = 0; j < this->edges.size(); j++)
-        //     {
-        //         std::cout << this->z_mn[i][j];
-        //     }
-        //     std::cout << std::endl;
-        // }
-        // for(int i = 0; i < 10; i++)
-        // {
-        //     for(int j = 0; j < 10; j++)
-        //     {
-        //         std::cout << this->zmn[j*this->edges.size()+i];
-        //     }
-        //     std::cout << std::endl;
-        // }
     }
 }
 
@@ -947,13 +839,13 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     // Lets print the solved vector
     // TODO: finish here
     // check against matlab
-    if(rank == 0)
-    {
-        for(int i = 0; i < matrix_size; i++)
-        {
-            std::cout << ans[i] << std::endl;
-        }
-    }
+    // if(rank == 0)
+    // {
+    //     for(int i = 0; i < matrix_size; i++)
+    //     {
+    //         std::cout << ans[i] << std::endl;
+    //     }
+    // }
 }
 
 std::vector<Node> MoMSolverMPI::calculateAAndPhi(int p, int q)

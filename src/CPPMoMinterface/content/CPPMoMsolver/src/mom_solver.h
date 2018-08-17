@@ -17,6 +17,12 @@
 #include "quadrature.h"
 #include "timer.h"
 
+extern "C"
+{
+    void zgetrf_(int*, int*, std::complex<double>*, int*, int*, int*);
+    void zgetrs_(const char*, int*, int*, std::complex<double>*, int*, int*, std::complex<double>*, int*, int*);
+}
+
 class MoMSolver
 {
     public:
@@ -29,6 +35,7 @@ class MoMSolver
         void calculateZmnByFace();
         void calculateVrhsInternally();
         void calculateJMatrix();
+        void calculateJMatrixLAPACK();
 
         // Time profiling
         void timeProfiler(int num_iter);

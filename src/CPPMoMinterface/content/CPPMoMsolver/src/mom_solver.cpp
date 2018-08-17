@@ -71,6 +71,7 @@ MoMSolver::MoMSolver(std::vector<Node> nodes,
     // So, lets set j as 0 + 1i
     std::complex<double> complex_constant(0, 1);
     this->j = complex_constant;
+    std::cout << "After constructor" << std::endl;
 }
 
 void MoMSolver::calculateZmnByFace()
@@ -120,6 +121,7 @@ void MoMSolver::calculateZmnByFace()
 
     for(int p = 0; p < this->triangles.size(); p++)
     {
+        std::cout << p << " out of " << this->triangles.size() << std::endl;
         for(int q = 0; q < this->triangles.size(); q++)
         {
         // Lets calculate Apq and Phipq
@@ -315,6 +317,45 @@ void MoMSolver::calculateJMatrix()
     // {
     //     std::cout << i_lhs(i) << std::endl;
     // }
+}
+
+void MoMSolver::calculateJMatrixLAPACK()
+{
+    int matrix_size = this->edges.size();
+    std::complex<double> *t_zmn;
+    t_zmn = new std::complex<double>[matrix_size * matrix_size];
+    for(int i = 0; i < matrix_size; i++)
+    {
+        for(int j = 0; j < matrix_size; j++)
+        {
+            t_zmn[j * matrix_size + i] = this->z_mn(i, j);
+        }
+    }
+
+    std::complex<double> vrhs[matrix_size];
+    for(int i = 0; i < matrix_size; i++)
+    {
+        vrhs[i] = this->vrhs_internal(i);
+    }
+
+
+    std::cout << "FILLED ZMN" << std::endl;
+
+    int zmn_lda = std::max(1, matrix_size);
+    int vrhs_lda = std::max(1, matrix_size);
+    int piv[matrix_size];
+    
+    int info = 256;
+
+    std:: cout << zmn_lda << std::endl;
+    std:: cout << vrhs_lda << std::endl;
+
+
+    zgetrf_(&matrix_size, &matrix_size, t_zmn, &zmn_lda, piv, &info);
+
+    char tran = 'N';
+    int one = 1;
+    zgetrs_(&tran, &matrix_size, &one, t_zmn, &matrix_size, piv, vrhs, &matrix_size, &info);
 }
 
 void MoMSolver::timeProfiler(int num_iter)

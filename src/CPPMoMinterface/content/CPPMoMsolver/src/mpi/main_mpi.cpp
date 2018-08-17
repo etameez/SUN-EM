@@ -28,16 +28,21 @@ int main()
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     
-    std::string path = "../../../../../examples/example-10/pec_plate_fine_mesh.mom";
-    MoMFileReader reader(path); 
+    // std::cout << "Before Reading File" << std::endl; 
+    std::string path = "../../../../../examples/example-10/pec_plate_super_fine_mesh.mom";
+    MoMFileReader reader(path);
+    // std::cout << "After Reading File" << std::endl; 
     MoMSolverMPI solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
-
+    // std::cout << "After MoM Solver" << std::endl;
     solver.calculateZmnByFaceMPI();
+    // std::cout << "After ZMN Calculation" << std::endl;
     if(rank == 0)
     {
         solver.calculateVrhsInternally();
     }
+    // // std::cout << "After VRHS Calculation" << std::endl;
     solver.calculateJMatrixSCALAPACK();
+    // // std::cout << "After J Calculation" << std::endl;
 
     MPI_Finalize();
     return 0;

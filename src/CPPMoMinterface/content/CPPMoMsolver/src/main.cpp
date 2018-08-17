@@ -18,12 +18,17 @@
 
 int main()
 {
-    std::string path = "../../../../../examples/example-10/pec_plate_fine_mesh.mom";
+    std::string path = "../../../../../examples/example-10/pec_plate.mom";
     MoMFileReader reader(path); 
     MoMSolver solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
+    std::cout << "After Solver" << std::endl;
 
     solver.calculateZmnByFace();
+    std::cout << "After ZMN" << std::endl;
     solver.calculateVrhsInternally();
-    solver.calculateJMatrix();
+    std::cout << "After VRHS" << std::endl;
+    // solver.calculateJMatrix();
+    solver.calculateJMatrixLAPACK();
+    std::cout << "After J" << std::endl;
     return 0;
 }

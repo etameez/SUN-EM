@@ -66,5 +66,11 @@ else()
     MESSAGE("COMPILING WITHOUT MPI")
     file(GLOB SOURCES "src/*.cpp")
     add_executable(mom ${SOURCES})
+    target_link_libraries(mom   -L/${CMAKE_CURRENT_SOURCE_DIR}/lib/scalapack
+                                -lreflapack
+                                -lrefblas
+                                -ltmg 
+                                -L/usr/bin
+                                -lgfortran)
 endif(MPI)
 unset(MPI CACHE)
