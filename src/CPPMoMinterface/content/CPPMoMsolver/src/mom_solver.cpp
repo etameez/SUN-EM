@@ -71,7 +71,6 @@ MoMSolver::MoMSolver(std::vector<Node> nodes,
     // So, lets set j as 0 + 1i
     std::complex<double> complex_constant(0, 1);
     this->j = complex_constant;
-    std::cout << "After constructor" << std::endl;
 }
 
 void MoMSolver::calculateZmnByFace()
@@ -117,11 +116,17 @@ void MoMSolver::calculateZmnByFace()
     //std::complex<double> z_mn[this->edges.size()][this->edges.size()] = {std::complex<double>(0,0)}; 
     // std::vector<std::complex<double>> row_vector(this->edges.size(), 0);
     // this->z_mn = std::vector<std::vector<std::complex<double>>>(this->edges.size(), row_vector);
-    this->z_mn.resize(this->edges.size(), this->edges.size());
+    this->z_mn = new std::complex<double>[this->edges.size() * this->edges.size()];
+    for(int i = 0; i < this->edges.size(); i++)
+    {
+        for(int j = 0; j < this->edges.size(); j++)
+        {
+        this->z_mn[j * this->edges.size() + i] = std::complex<double>(0, 0);
+        }
+    }
 
     for(int p = 0; p < this->triangles.size(); p++)
     {
-        std::cout << p << " out of " << this->triangles.size() << std::endl;
         for(int q = 0; q < this->triangles.size(); q++)
         {
         // Lets calculate Apq and Phipq
@@ -256,8 +261,9 @@ void MoMSolver::calculateZmnByFace()
 		            // the formula needs to be tweaked as such
 		            // Zmn = Zmn + edge_length_of_observation_triangle *
 		            //             ((j * omega * A * rho_c / 2) - phi * phi_sign)
-                    this->z_mn(this->triangles[p].getEdges()[r], this->triangles[q].getEdges()[e]) =
-                    this->z_mn(this->triangles[p].getEdges()[r], this->triangles[q].getEdges()[e]) +
+                    
+
+                    this->z_mn[this->triangles[p].getEdges()[r] + this->triangles[q].getEdges()[e] * this->edges.size()] +=
                         this->edges[this->triangles[p].getEdges()[r]].getLength() *
                             (this->j * 
                             this->omega *
@@ -293,14 +299,15 @@ void MoMSolver::calculateVrhsInternally()
 
     for(int i = 0; i < this->edges.size(); i++)
     {
-        this->vrhs_internal(i) = E.getDotNoComplex(this->edges[i].getRhoCPlus()) / 2 +
+        this->vrhs_internal[i] = E.getDotNoComplex(this->edges[i].getRhoCPlus()) / 2 +
                                  E.getDotNoComplex(this->edges[i].getRhoCMinus()) / 2;
-        this->vrhs_internal(i) = this->vrhs_internal(i) * this->edges[i].getLength();  
+        this->vrhs_internal[i] = this->vrhs_internal[i] * this->edges[i].getLength();  
     }
 }
 
 void MoMSolver::calculateJMatrix()
 {
+    // TODO: DELETE
     // Lets calcualte the I vector
     // LU-decomposition /w partial pivot
     // Using Eigen3
@@ -311,7 +318,7 @@ void MoMSolver::calculateJMatrix()
 
 
     // Now lets solve for I
-    Eigen::VectorXcd i_lhs = this->z_mn.partialPivLu().solve(this->vrhs_internal);
+    // Eigen::VectorXcd i_lhs = this->z_mn.partialPivLu().solve(this->vrhs_internal);
 
     // for(int i = 0; i < this->edges.size(); i++)
     // {
@@ -322,24 +329,6 @@ void MoMSolver::calculateJMatrix()
 void MoMSolver::calculateJMatrixLAPACK()
 {
     int matrix_size = this->edges.size();
-    std::complex<double> *t_zmn;
-    t_zmn = new std::complex<double>[matrix_size * matrix_size];
-    for(int i = 0; i < matrix_size; i++)
-    {
-        for(int j = 0; j < matrix_size; j++)
-        {
-            t_zmn[j * matrix_size + i] = this->z_mn(i, j);
-        }
-    }
-
-    std::complex<double> vrhs[matrix_size];
-    for(int i = 0; i < matrix_size; i++)
-    {
-        vrhs[i] = this->vrhs_internal(i);
-    }
-
-
-    std::cout << "FILLED ZMN" << std::endl;
 
     int zmn_lda = std::max(1, matrix_size);
     int vrhs_lda = std::max(1, matrix_size);
@@ -347,15 +336,17 @@ void MoMSolver::calculateJMatrixLAPACK()
     
     int info = 256;
 
-    std:: cout << zmn_lda << std::endl;
-    std:: cout << vrhs_lda << std::endl;
-
-
-    zgetrf_(&matrix_size, &matrix_size, t_zmn, &zmn_lda, piv, &info);
+    zgetrf_(&matrix_size, &matrix_size, this->z_mn, &zmn_lda, piv, &info);
 
     char tran = 'N';
     int one = 1;
-    zgetrs_(&tran, &matrix_size, &one, t_zmn, &matrix_size, piv, vrhs, &matrix_size, &info);
+    zgetrs_(&tran, &matrix_size, &one, this->z_mn, &matrix_size, piv, &this->vrhs_internal[0], &matrix_size, &info);
+
+    // Print ISol
+    // for(int i = 0; i < this->edges.size(); i++)
+    // {
+    //     std::cout << this->vrhs_internal[i] << std::endl;
+    // }
 }
 
 void MoMSolver::timeProfiler(int num_iter)
