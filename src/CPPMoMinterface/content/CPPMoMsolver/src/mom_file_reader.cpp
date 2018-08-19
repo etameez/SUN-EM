@@ -356,6 +356,11 @@ std::vector<double> MoMFileReader::getVrhs()
   return this->vrhs;
 }
 
+std::string MoMFileReader::getFileName()
+{
+    return this->const_map["OutputDirName"];
+}
+
 std::vector<std::string> MoMFileReader::constLineReader(std::string line)
 {
   // line is of the form

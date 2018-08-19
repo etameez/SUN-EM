@@ -49,8 +49,9 @@ class MoMSolverMPI
 
         void calculateVrhsInternally();
         void calculateZmnByFaceMPI();
-
         void calculateJMatrixSCALAPACK();
+
+        std::vector<std::complex<double>> getIlhs();
 
     protected:
         std::vector<Node> nodes;

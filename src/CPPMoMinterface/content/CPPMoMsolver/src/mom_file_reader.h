@@ -22,6 +22,7 @@ class MoMFileReader
         std::vector<Triangle> getTriangles();
         std::vector<Edge> getEdges();
         std::vector<double> getVrhs();
+        std::string getFileName();
   
     protected:
         std::map<std::string, std::string> const_map;

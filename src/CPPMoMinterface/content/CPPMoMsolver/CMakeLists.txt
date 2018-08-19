@@ -40,6 +40,7 @@ if(MPI)
                 src/timer.cpp
                 src/triangle.cpp
                 src/vrhs.cpp
+                src/mom_file_writer.cpp
                 src/mpi/main_mpi.cpp
                 src/mpi/mom_solver_mpi.cpp)
     add_executable(mom_mpi ${SOURCES})

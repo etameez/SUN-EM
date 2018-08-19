@@ -658,6 +658,10 @@ std::vector<int> MoMSolverMPI::getProcessGrid(int num_procs)
 }
 
 
+std::vector<std::complex<double>> MoMSolverMPI::getIlhs()
+{
+    return this->ilhs;
+}
 
 
 
