@@ -29,7 +29,7 @@ int main()
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     
     // std::cout << "Before Reading File" << std::endl; 
-    std::string path = "../../../../../examples/example-10/pec_plate_super_fine_mesh.mom";
+    std::string path = "../../../../../examples/example-10/pec_plate.mom";
     MoMFileReader reader(path);
     // std::cout << "After Reading File" << std::endl; 
     MoMSolverMPI solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
