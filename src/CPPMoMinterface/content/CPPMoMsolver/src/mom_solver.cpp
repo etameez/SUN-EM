@@ -275,15 +275,6 @@ void MoMSolver::calculateZmnByFace()
             } 
         }
     }
-
-    // for(int i = 0; i < this->edges.size(); i++)
-    // {
-    //     for (int j = 0; j < this->edges.size(); j++)
-    //     {
-    //         std::cout << z_mn[i][j] << " ";
-    //     }
-    //     std::cout << std::endl;
-    // }
 }
 
 void MoMSolver::calculateVrhsInternally()
@@ -291,10 +282,8 @@ void MoMSolver::calculateVrhsInternally()
     // Lets calculate the Vrhs data internally
     // This wil just be for a nomally incident x-directed plane wave
     // TODO: make more general
-    // TODO: change to complex for ease of use in calculations
 
     Node E(1, 0, 0);
-    // this->vrhs_internal = std::vector<double>(this->edges.size(), 0);
     this->vrhs_internal.resize(this->edges.size());
 
     for(int i = 0; i < this->edges.size(); i++)
@@ -305,70 +294,52 @@ void MoMSolver::calculateVrhsInternally()
     }
 }
 
-void MoMSolver::calculateJMatrix()
-{
-    // TODO:: DELETE
-    // Lets calcualte the I vector
-    // LU-decomposition /w partial pivot
-    // Using Eigen3
-
-    // First lets put the values into relevant Eigen datatypes
-    // TODO: After OpenMP switch all to Matrices to Eigen Datatypes
-    // TODO: change function name
-
-
-    // Now lets solve for I
-    // Eigen::VectorXcd i_lhs = this->z_mn.partialPivLu().solve(this->vrhs_internal);
-
-    // for(int i = 0; i < this->edges.size(); i++)
-    // {
-    //     std::cout << i_lhs(i) << std::endl;
-    // }
-}
-
 void MoMSolver::calculateJMatrixLAPACK()
 {
+    // Lets calculate the Ilhs(current)
+
+    // Lets start by defining the matix size
+    // Zmn will always be square so n_rows = n_cols
     int matrix_size = this->edges.size();
 
+    // Lets define the lda for Zmn
+    // This is equal to matrix_size due to Zmn being square
+    // This can just be replaced by matrix_size, but it is left
+    // just for completeness sake.
     int zmn_lda = std::max(1, matrix_size);
-    int vrhs_lda = std::max(1, matrix_size);
+    
+    // Lets define the pivot array
+    // LAPACK will use this array to store the pivot
+    // information from the LU decomposition
     int piv[matrix_size];
     
+    // Info is the variable needed to gauge the success of the LAPACK
+    // routines. If equal to 0, then everything went fine.
+    // Lets set it to an arbitrary number
     int info = 256;
 
+    // Lets get the LU decomposition of Zmn first
+    // zgetrf_ is a LAPACK routine to calculate the LU decomposition
+    // of a matrix. See the LAPACK website for full function details
+    // Remember that LAPACK overwrites this->z_mn with it's LU
+    // decomposition so the Zmn matrix will not be available after.
+    // If Zmn is needed, then just make a copy before calling the function
     zgetrf_(&matrix_size, &matrix_size, this->z_mn, &zmn_lda, piv, &info);
 
+    // Lets now calculate Ilhs(current)
+    // Lets first define the matrix orientation
     char tran = 'N';
+
+    // Now lets define the number of columns in the B matrix
+    // In this case, the B matric is Vrhs with one column
+    // It is important to remember that LAPACK routines are written
+    // in Fortran which only supports pass by reference
     int one = 1;
+
+    // Now lets call zgetrs_ which solves for Ilhs(current) using
+    // the LU decomposition from zgetrf_
+    // The full function details can be found on the LAPACK website
     zgetrs_(&tran, &matrix_size, &one, this->z_mn, &matrix_size, piv, &this->vrhs_internal[0], &matrix_size, &info);
-
-    // Print ISol
-    // for(int i = 0; i < this->edges.size(); i++)
-    // {
-    //     std::cout << this->vrhs_internal[i] << std::endl;
-    // }
-}
-
-void MoMSolver::timeProfiler(int num_iter)
-{
-    double average_z_time = this->z_mn_time / (double)num_iter;
-    double average_i_time = this->i_time / (double)num_iter;
-    double average_a_time = this->a_phi_time / (double)num_iter;
-    double average_j_time = this->j_time / (double)num_iter;
-
-    std::cout << "Average Z time: " << average_z_time << std::endl;
-    std::cout << "Average A time: " << average_a_time << std::endl;
-    std::cout << "Average I time: " << average_i_time << std::endl;
-    std::cout << "Average J time: " << average_j_time << std::endl;
-
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-
-    std::cout << "Z time: " << average_z_time - average_a_time << std::endl;
-    std::cout << "A time: " << average_a_time - average_i_time << std::endl;
-    std::cout << "I time: " << average_i_time                  << std::endl;
-
 }
 
 std::vector<Node> MoMSolver::calculateAAndPhi(int p, int q)

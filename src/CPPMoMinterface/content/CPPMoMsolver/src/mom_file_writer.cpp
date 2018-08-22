@@ -19,8 +19,15 @@ MoMFileWriter::MoMFileWriter()
 
 void MoMFileWriter::writeIlhsToFile(std::string filename, std::vector<std::complex<double>> ilhs)
 {
+	// Lets write the current vector to a file
+	// The form will be a+bi for MATLAB to read easily
+
+	// Lets start by defining a temporary variable to store the imaginary piece(b)
+	// and a variable for the sign
 	double temp_imag;
 	std::string sign;
+
+	// Lets open the file
 	std::ofstream file;	
 	file.open(filename);
 
@@ -28,6 +35,9 @@ void MoMFileWriter::writeIlhsToFile(std::string filename, std::vector<std::compl
 	{
 		temp_imag = ilhs[i].imag();
 
+		// Check if the imaginary part is negative
+		// If it is, set sign to - and multiply the imaginary part by -1
+		// Else, set sign to +
 		if(temp_imag < 0)
 		{
 			temp_imag *= -1.000;
@@ -38,6 +48,7 @@ void MoMFileWriter::writeIlhsToFile(std::string filename, std::vector<std::compl
 			sign = "+";
 		}
 
+		// Lets write a+bi to the file
 		file << ilhs[i].real() << sign << temp_imag << "i" << std::endl;
 	}
 

@@ -61,7 +61,6 @@ class MoMSolverMPI
         std::vector<std::complex<double>> vrhs_internal;
         std::map<std::string, std::string> const_map;
         std::vector<std::array<double, 4>> quadrature_weights_values;
-        Eigen::MatrixXcd z_mn;
         std::complex<double> *zmn;
         std::complex<double> j;
         std::vector<std::complex<double>> ilhs;

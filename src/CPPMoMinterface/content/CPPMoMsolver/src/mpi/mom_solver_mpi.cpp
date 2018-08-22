@@ -38,9 +38,6 @@ MoMSolverMPI::MoMSolverMPI(std::vector<Node> nodes,
 
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-    // this->num_threads = 2;//4 / size;
-    //std::cout << "Set threads as: " << this->num_threads << std::endl;
 }
 
 void MoMSolverMPI::calculateVrhsInternally()
@@ -178,21 +175,34 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
 
     // Now that the size of the data is available to the root process
     // Lets gather all the data
-    // First lets define two vectors
-    // The first is to store the data
-    // The seconds is to store the displacements of the data
     std::vector<double> all_zmn_data;
 
-    // TODO: Comment this
+    // Now lets send the data from the processes to the root process
+    // A very easy way to do this is MPI_Gatherv but it runs into
+    // memory issues for large problems(around zmn = 5000x5000)
+    // The root process does not need to send it's calculated data
+    // to itself, so lets send from all the other processes
     if(rank != 0)
     {
         MPI_Send(&sub_zmn[0], sub_zmn.size(), MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
     }
 
+    // Now at the root process
+    // Lets receive the data
     if(rank == 0)
     {
+        // First lets allocate some memory for Zmn
+        // Remember that this must only be done in the root process
         this->zmn = new std::complex<double>[this->edges.size() * this->edges.size()];
 
+        // Lets initialize all the entries in this->zmn to 0
+        // Since this->zmn is dynamically allocated a different
+        // indexing method will be used.
+        // For indices i and j, the equivalent of zmn[i][j] is,
+        // zmn[i + zmn_length * j]
+        // A vector of vectos is not used due to SCALAPACK needing
+        // contiguos(sp?) data both in the row and column directions
+        // A vector of vectors is only contiguous in its rows
         for(int i = 0; i < this->edges.size(); i++)
         {
             for(int j = 0; j < this->edges.size(); j++)
@@ -201,31 +211,43 @@ void MoMSolverMPI::calculateZmnByFaceMPI()
             }
         }
         
+        // Lets receive the data from the sub processes
+        // First check if there are more than one process
+        // If there is only one process, then nothing needs to
+        // received since nothing was sent
         if(size > 1)
         {
+            // Lets loop over the non-root processes
             for(int i = 1; i < size; i++)
             {
+                // Lets clear the data from the previous process and allocate 
+                // the necessary space for the received data
                 all_zmn_data.clear();
                 all_zmn_data.resize(proc_vector_size[i]);
+
+                // Lets receive the data
                 MPI_Recv(&all_zmn_data[0], proc_vector_size[i], MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+                // Now lets start filling in Zmn
+                // Remember that the data received is of the form
+                // row_index, col_index, real_part, imag_part ...
                 int index;
                 for(int j = 0; j < all_zmn_data.size() / 4; j++)
                 {
                     index = j * 4;
                     std::complex<double> temp(all_zmn_data[index + 2], all_zmn_data[index + 3]);
                     this->zmn[(int)all_zmn_data[index] * this->edges.size() + (int)all_zmn_data[index+1]] += temp;
-
                 }
             }
         }
 
+        // Lets add the Zmn contributions from those calculated by the root process
+        // Remember that the roor process cannot send to itself, so this is a necessary step
         int index;
         for(int j = 0; j < sub_zmn.size() / 4; j++)
         {
             index = j * 4;
             std::complex<double> temp(sub_zmn[index + 2], sub_zmn[index + 3]);
-            //this->z_mn((int)all_zmn_data[index], (int)all_zmn_data[index + 1]) += temp;
             this->zmn[(int)sub_zmn[index] * this->edges.size() + (int)sub_zmn[index+1]] += temp;
         }
     }
@@ -241,13 +263,28 @@ int MoMSolverMPI::numValuesMPI(int num_procs, int rank, int data_length)
 std::vector<double> MoMSolverMPI::workMPIMP(std::vector<int> p) // RENAME
 {
     // See MoMSolverMPI::calculateZmnByFace() for full commentary
+
+    // Lets create a vector to store the processes section of Zmn
+    // All the threads will have access to this
     std::vector<double> zmn;
-    // omp_set_num_threads(this->num_threads);
+
+    // Lets declare an OpenMP parallel region
+    // This will allow the code to be split between threads
+    // It is important to remember to create a parallel region
+    // before calling other OpenMP parallel commands
+    // It is also important to remember that creating a parallel
+    // region is quite expensive so it is better to create one 
+    // large one as opposed to many smaller ones
+    // This is the reasin that OpenMP is not used to assist with
+    // A_pq and Phi_pq calculations 
     #pragma omp parallel
     {
-        // std::cout << omp_get_num_threads() << std::endl;
+        // Lets create a vector to store a small portion of 
+        // the processes total selection of Zmn
+        // This vector is unique to each thread
         std::vector<double> partial_zmn;
 
+        // Lets make the two top for loops parallel
         #pragma omp for nowait collapse(2)
         for(int i = 0; i < p.size(); i++)
         {
@@ -330,6 +367,10 @@ std::vector<double> MoMSolverMPI::workMPIMP(std::vector<int> p) // RENAME
             } 
         }
 
+        // Lets now gather the smaller portions of Zmn from each thread
+        // and place them in the common Zmn vector
+        // Rememeber that this is not the full Zmn, but just the portion
+        // allocated to the specific process
         #pragma omp critical
         zmn.insert(zmn.end(), partial_zmn.begin(), partial_zmn.end()); 
 
@@ -339,36 +380,93 @@ std::vector<double> MoMSolverMPI::workMPIMP(std::vector<int> p) // RENAME
 
 void MoMSolverMPI::calculateJMatrixSCALAPACK()
 {   
-    // Lets get the rank and numprocs
+    // Lets calculate Ilhs(current) using SCALAPACK
+    // First an LU decompostion of Zmn and then solving
+    // for Ilhs using it
+
+    // Lets get the rank of the current process and  
+    // the number of processes
+    // This can also be done using vanilla MPI
+    // functions, but to be consistent in the function,
+    // lets use BLACS
+    // BLACS is a layer on top of vanilla MPI and provides
+    // the needed framework for SCALAPACK to function
+    // It is important to differentiate between
+    // BLAS and BLACS
+    // BLAS     -> Low level linear algebra operations
+    //          -> Used by SCALAPACK to do the major matix
+    //              operations
+    //          -> Won't be mentioned again
+    //
+    // BLACS    -> Layer over MPI
+    //          -> Framework for the parallel piece of 
+    //              SCALAPACK
+    //          -> Used to do all the sending and receiving
+    //              and any MPI stuff
     int rank;
     int size;
     Cblacs_pinfo(&rank, &size);
 
-    // Lets define some constants
-    int zero = 0;
-    int one = 1;
-
-    // Lets define the size of Zmn
-    // Lets also define the block size
-    int matrix_size = this->edges.size(); 
-    int block_size = 64;
-
     // Lets get the BLACS context
+    // This is similar to tags in vanilla MPI
+    // There can be many simultaneous BLACS contexts
     int context;
     Cblacs_get(0, 0, &context);
 
-    // Lets create a process grid
+    // Lets define some constants
+    // SCALAPACK is written in Fortran, which
+    // only supports pass by reference
+    int zero = 0;
+    int one = 1;
+    int matrix_size = this->edges.size(); 
+
+    // A quick overview of SCALAPACK usage
+    // SCALAPACK uses LAPACK routines to do linear algebra operations
+    // The LAPACK operations are used on small subsets of data to eventually
+    // find the solution to the overall data
+    // These smaller subsets can be done simultaneously
+    // MPI facilitates these simultaneous operations.
+    // This is where BLACS comes in
+    // It proveds higher level MPI functionallity for ease of use
+    //
+    // Lets discuss the process
+    // First lets create a process grid
+    // This determines how the data will by distributed among the processes
+    // An example for four processes in a 2x2 square grid:
+    //    0 1
+    //    - -
+    // 0 |0|1|  -> The numbers in the blocks are the processor ranks
+    // 1 |2|3|  -> The 0's and 1's outside are the grid co-ordinated
+    //    - -   
+    // The shape of the grid affects the placement of the data so
+    // different grid shapes influence the speed of the calculations
+    // There is no hard and fast rule on the optimal grid size and shape,
+    // but there is merit to having the grid as square as possible
+    // According to the SCALAPACK website, a grid with more columns
+    // than rows is better for LU decompositon
+    // Thus, a good grid to aim for is rows x (rows + 1) 
+    //
+    // Lets now create the process grid
     std::vector<int> proc_grid = this->getProcessGrid(size);
     int proc_rows = proc_grid[0];
     int proc_cols = proc_grid[1];
     Cblacs_gridinit(&context, "Row-major", proc_rows, proc_cols); 
 
-    // TODO: change procrows and proccols
+    // Lets get the amount of rows and columns in the grid
+    // Lets also get the position in the grid of the current process
     int procrows;
     int proccols;
     int my_row;
     int my_col;
     Cblacs_gridinfo(context, &procrows, &proccols, &my_row, &my_col);
+
+    // Continuing the above overview,
+    // Lets discuss how the data is distributed on the process grid
+    // SCALAPACK uses a block cyclic distribution pattern
+    // The data is divided into blocks and cyclically distribited to each process
+    // See http://www.netlib.org/scalapack/slug/node75.html for details 
+    // Lets define the block size
+    int block_size = 64;
     
     // Lets get the number or local rows and columns
     // Zmn
@@ -539,9 +637,6 @@ std::vector<Node> MoMSolverMPI::calculateAAndPhi(int p, int q)
 
     std::vector<std::complex<double>> i_vector = this->calculateIpq(p, q);
 
-    // Lets make this compatible with OpenMP
-    // To do this, lets make the for loop independent
-    // Lets first resize the vector to accomodate(sp?) the values
     std::vector<Node> a_and_phi_vector;
 
     for(int i = 0; i < 3; i++)

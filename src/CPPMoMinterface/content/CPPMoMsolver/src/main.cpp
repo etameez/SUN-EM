@@ -25,7 +25,6 @@ int main()
 
     solver.calculateZmnByFace();
     solver.calculateVrhsInternally();
-    // solver.calculateJMatrix();
     solver.calculateJMatrixLAPACK();
     return 0;
 }
