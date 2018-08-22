@@ -40,7 +40,7 @@ Edge::Edge(int vertex_1,
     this->length = length;
 
     // The minus and plus triangle indices are each indexes to a vector<Triangle>
-    // They define the positivity of the triangles TODO FINISH
+    // They define the positivity of the triangles
     this->minus_triangle_index = minus_triangle_index;
     this->plus_triangle_index = plus_triangle_index;
 

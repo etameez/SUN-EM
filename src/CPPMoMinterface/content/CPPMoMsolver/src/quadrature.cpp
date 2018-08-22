@@ -1,6 +1,6 @@
 #include "quadrature.h"
 
-// TODO add in 3 and 12 quadrature points
+// TODO: add in 3 and 12 quadrature points
 
 std::vector<std::array<double, 4>> getQuadratureWeightsAndValues(int num_quadrature_points)
 {

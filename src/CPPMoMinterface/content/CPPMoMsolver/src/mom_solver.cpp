@@ -109,7 +109,7 @@ void MoMSolver::calculateZmnByFace()
     // p -> observation triangle 
     // q -> source triangle
 
-    // Declare Zmn TODO change
+    // Declare Zmn TODO: change
     // Remember that Zmn will be complex
     // It is of size mxn where m == n == number of edges
     // The number of edges is defined in const_map
@@ -290,8 +290,8 @@ void MoMSolver::calculateVrhsInternally()
 {
     // Lets calculate the Vrhs data internally
     // This wil just be for a nomally incident x-directed plane wave
-    // TODO make more general
-    // TODO change to complex for ease of use in calculations
+    // TODO: make more general
+    // TODO: change to complex for ease of use in calculations
 
     Node E(1, 0, 0);
     // this->vrhs_internal = std::vector<double>(this->edges.size(), 0);
@@ -307,14 +307,14 @@ void MoMSolver::calculateVrhsInternally()
 
 void MoMSolver::calculateJMatrix()
 {
-    // TODO: DELETE
+    // TODO:: DELETE
     // Lets calcualte the I vector
     // LU-decomposition /w partial pivot
     // Using Eigen3
 
     // First lets put the values into relevant Eigen datatypes
-    // TODO After OpenMP switch all to Matrices to Eigen Datatypes
-    // TODO change function name
+    // TODO: After OpenMP switch all to Matrices to Eigen Datatypes
+    // TODO: change function name
 
 
     // Now lets solve for I
@@ -459,9 +459,9 @@ std::vector<std::complex<double>> MoMSolver::calculateIpq(int p, int q)
 
 
     // Lets start by checking for a singularity(p == q)
-    if(p == 19823) // TODO change to p == q && SING == True
+    if(p == 19823) // TODO: change to p == q && SING == True
     {
-        // TODO Add singularity treatment
+        // TODO: Add singularity treatment
         int x = 0;
     }
     else

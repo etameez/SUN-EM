@@ -178,7 +178,7 @@ Node Node::getSubtractComplexNode(Node node)
     // but the input node is always complex
     // sum = (x1 + x2, y1 + y2, z1 + z2)
 
-    // TODO change structure to that of getAddNode() to be more general 
+    // TODO: change structure to that of getAddNode() to be more general 
 
     Node return_node;
 
@@ -204,7 +204,7 @@ std::complex<double> Node::getDot(Node node)
     // but the input node is always real
     // dot_product = (x1 * x2) + (y1 * y2) + (z1 * z2)
 
-    // TODO change to be more general. Input node could be complex or real
+    // TODO: change to be more general. Input node could be complex or real
 
     if(this->isComplex)
     {
@@ -223,11 +223,11 @@ std::complex<double> Node::getDot(Node node)
 double Node::getDotNoComplex(Node node)
 {
     // No need for this I think
-    // TODO check how this is used and change to getDot(Node node)
+    // TODO: check how this is used and change to getDot(Node node)
     // Used in Vrhs calculations
     // Needs to return a double
     // But, vrhs needs to be complex aswell for calculation reasons
-    // TODO change vrhs to complex
+    // TODO: change vrhs to complex
     return (this->x * node.getXCoord()) +
            (this->y * node.getYCoord()) + 
            (this->z * node.getZCoord());
