@@ -32,14 +32,12 @@ if(MPI)
 
     include_directories(${MPI_INCLUDE_PATH})
     set(SOURCES src/edge.cpp
-                src/mom_data.cpp
                 src/mom_file_reader.cpp
                 src/mom_solver.cpp
                 src/node.cpp
                 src/quadrature.cpp
                 src/timer.cpp
                 src/triangle.cpp
-                src/vrhs.cpp
                 src/mom_file_writer.cpp
                 src/mpi/main_mpi.cpp
                 src/mpi/mom_solver_mpi.cpp)
