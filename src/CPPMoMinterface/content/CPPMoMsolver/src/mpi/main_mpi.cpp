@@ -35,23 +35,16 @@ int main()
     MoMSolverMPI solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
     
     solver.calculateZmnByFaceMPI();
+    solver.calculateVrhsInternally();
 
-    if(rank == 0)
-    {
-        solver.calculateVrhsInternally();
-    }
-    
     solver.calculateJMatrixSCALAPACK();
 
     if(rank == 0)
     {
         MoMFileWriter file_writer;
-        // std::string file_name = reader.getFileName() + ".sol";
         std::string file_name = path.substr(0 , path.size() - 3) + "sol";
         file_writer.writeIlhsToFile(file_name, solver.getIlhs());
     }
-
-
 
     MPI_Finalize();
     return 0;

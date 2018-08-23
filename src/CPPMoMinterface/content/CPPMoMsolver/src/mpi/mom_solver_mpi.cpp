@@ -36,8 +36,8 @@ MoMSolverMPI::MoMSolverMPI(std::vector<Node> nodes,
     std::complex<double> complex_constant(0, 1);
     this->j = complex_constant;
 
-    int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    // int size;
+    // MPI_Comm_size(MPI_COMM_WORLD, &size);
 }
 
 void MoMSolverMPI::calculateVrhsInternally()
@@ -46,15 +46,111 @@ void MoMSolverMPI::calculateVrhsInternally()
     // This wil just be for a nomally incident x-directed plane wave
     // TODO: make more general
 
-    Node E(1, 0, 0);
-    this->vrhs_internal.resize(this->edges.size());
+    // Node E(1, 0, 0);
+    // this->vrhs_internal.resize(this->edges.size());
 
-    for(int i = 0; i < this->edges.size(); i++)
+    // for(int i = 0; i < this->edges.size(); i++)
+    // {
+    //     this->vrhs_internal[i] = E.getDotNoComplex(this->edges[i].getRhoCPlus()) / 2 +
+    //                              E.getDotNoComplex(this->edges[i].getRhoCMinus()) / 2;
+    //     this->vrhs_internal[i] = this->vrhs_internal[i] * this->edges[i].getLength();  
+    // }
+
+
+    int size;
+    int rank;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    std::vector<int> sub_edge_values;
+    int index;
+
+    if(rank == 0)
     {
-        this->vrhs_internal[i] = E.getDotNoComplex(this->edges[i].getRhoCPlus()) / 2 +
-                                 E.getDotNoComplex(this->edges[i].getRhoCMinus()) / 2;
-        this->vrhs_internal[i] = this->vrhs_internal[i] * this->edges[i].getLength();  
+        // The index does not need used here since process 0 will always start at index == 0
+        // The number of values allocated to the process is determined by numValuesMPI
+        for(int i = 0; i < this->numValuesMPI(size, rank, this->edges.size()); i++)
+        {
+            sub_edge_values.push_back(i);
+        }
     }
+    else
+    {   
+        // It gets a bit more complex here since non root processes need to calculate
+        // how many edge_values were sent to the preceeding processes and set the index accordingly
+        index = 0;
+        for(int i = 0; i < rank; i++)
+        {
+            index += this->numValuesMPI(size, i, this->edges.size());
+        }
+        for(int i = index; i < this->numValuesMPI(size, rank, this->edges.size()) + index; i++)
+        {
+            sub_edge_values.push_back(i);
+        }
+    }
+
+    std::vector<double> sub_vrhs;
+
+    std::complex<double> tmp_vrhs_value;
+
+    Node E_plus;
+    Node E_minus;
+    int m;
+
+
+    for(int i = 0; i < sub_edge_values.size(); i++)
+    {
+        m = sub_edge_values[i];
+        int triangle_plus = this->edges[m].getPlusTriangleIndex();
+        int triangle_minus = this->edges[m].getMinusTriangleIndex();
+
+        
+        E_plus = Node(std::exp(this->j * this->k * this->triangles[triangle_plus].getCentre().getZCoord()),
+                    std::complex<double>(0, 0), std::complex<double>(0, 0));
+
+        E_minus = Node(std::exp(this->j * this->k * this->triangles[triangle_minus].getCentre().getZCoord()),
+                    std::complex<double>(0, 0), std::complex<double>(0, 0));
+
+        tmp_vrhs_value = 0.5 * E_plus.getDot(this->edges[m].getRhoCPlus()) + 
+                         0.5 * E_minus.getDot(this->edges[m].getRhoCMinus());
+        tmp_vrhs_value *= this->edges[m].getLength();
+
+        sub_vrhs.push_back(tmp_vrhs_value.real()); 
+        sub_vrhs.push_back(tmp_vrhs_value.imag()); 
+    }
+
+    std::vector<int> receive_count;
+    std::vector<int> displs;
+    std::vector<double> tmp_vrhs;
+    
+    if(rank == 0)
+    {
+        for(int i = 0; i < size; i++)
+        {
+            receive_count.push_back(this->numValuesMPI(size, i, this->edges.size()) * 2);
+        }
+
+        displs.resize(size);
+        displs[0] = 0;
+        for(int i = 1; i < size; i++)
+        {
+            displs[i] = displs[i - 1] + receive_count[i - 1];
+        }
+        tmp_vrhs.resize(this->edges.size() * 2);
+    }
+
+    MPI_Gatherv(&sub_vrhs[0], sub_vrhs.size(), MPI_DOUBLE, &tmp_vrhs[0], 
+                    &receive_count[0], &displs[0], MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    if(rank == 0)
+    {
+        for(int i = 0; i < tmp_vrhs.size(); i+=2)
+        {
+            this->vrhs_internal.push_back(std::complex<double>(tmp_vrhs[i], tmp_vrhs[i + 1]));
+        }
+    }
+
+
 }
 
 void MoMSolverMPI::calculateZmnByFaceMPI()

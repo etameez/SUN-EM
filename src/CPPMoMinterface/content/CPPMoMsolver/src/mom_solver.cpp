@@ -13,8 +13,6 @@
  *
  */
 
-#include <cfenv>
-
 MoMSolver::MoMSolver(std::vector<Node> nodes,
                      std::vector<Triangle> triangles,
                      std::vector<Edge> edges,
@@ -281,17 +279,27 @@ void MoMSolver::calculateVrhsInternally()
 {
     // Lets calculate the Vrhs data internally
     // This wil just be for a nomally incident x-directed plane wave
-    // TODO: make more general
-
-    Node E(1, 0, 0);
+    // TODO: Comment this
     this->vrhs_internal.resize(this->edges.size());
+
+    Node E_plus;
+    Node E_minus;
 
     for(int i = 0; i < this->edges.size(); i++)
     {
-        this->vrhs_internal[i] = E.getDotNoComplex(this->edges[i].getRhoCPlus()) / 2 +
-                                 E.getDotNoComplex(this->edges[i].getRhoCMinus()) / 2;
-        this->vrhs_internal[i] = this->vrhs_internal[i] * this->edges[i].getLength();  
-    }
+        int triangle_plus = this->edges[i].getPlusTriangleIndex();
+        int triangle_minus = this->edges[i].getMinusTriangleIndex();
+
+        E_plus = Node(std::exp(this->j * this->k * this->triangles[triangle_plus].getCentre().getZCoord()),
+                    std::complex<double>(0, 0), std::complex<double>(0, 0));
+
+        E_minus = Node(std::exp(this->j * this->k * this->triangles[triangle_minus].getCentre().getZCoord()),
+                    std::complex<double>(0, 0), std::complex<double>(0, 0));
+
+        this->vrhs_internal[i] = 0.5 * E_plus.getDot(this->edges[i].getRhoCPlus()) + 
+                                 0.5 * E_minus.getDot(this->edges[i].getRhoCMinus());
+        this->vrhs_internal[i] *= this->edges[i].getLength();
+    }   
 }
 
 void MoMSolver::calculateJMatrixLAPACK()
@@ -340,6 +348,11 @@ void MoMSolver::calculateJMatrixLAPACK()
     // the LU decomposition from zgetrf_
     // The full function details can be found on the LAPACK website
     zgetrs_(&tran, &matrix_size, &one, this->z_mn, &matrix_size, piv, &this->vrhs_internal[0], &matrix_size, &info);
+}
+
+std::vector<std::complex<double>> MoMSolver::getIlhs()
+{
+    return this->vrhs_internal;
 }
 
 std::vector<Node> MoMSolver::calculateAAndPhi(int p, int q)

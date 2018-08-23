@@ -35,6 +35,7 @@ class MoMSolver
         void calculateZmnByFace();
         void calculateVrhsInternally();
         void calculateJMatrixLAPACK();
+        std::vector<std::complex<double>> getIlhs();
 
     protected:
         std::vector<Node> nodes;
