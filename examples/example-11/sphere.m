@@ -53,7 +53,7 @@ Const.SUNEMmomstrfilename      = 'sunem_mom_sphere.str';
 %[CISOL] = readFileFromCpp(Const);
 %error = calculateErrorNormPercentage(xVectorsFEKO.Isol, CISOL);
 %disp(error);
-
+writeFileForCpp(Const, Solver_setup, yVectorsFEKO);
 
 % 2018.06.10: If we are going to run the SUNEM MoM solver, then we need to extract our own internal
 % MoM matrix equation. Note: we can only do this after the solver data (i.e. geometry, etc. is setup)
