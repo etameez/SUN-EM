@@ -57,9 +57,12 @@ function [mom] = runCppMoMsolver(Const, Solver_setup, yVectors, refIsol)
            full_cmd = [cpp_exec_path ' ' dot_mom_path]; 
            [status, cmdout] = unix(full_cmd);
        end
-       mom.totsolTime = toc;
-       message_fc(Const,sprintf('Finished MoM solver in %f sec.',mom.totsolTime));
-
+       if status ~= 0
+           error(cmdout);
+       else
+           mom.totsolTime = toc;
+           message_fc(Const,sprintf('Finished MoM solver in %f sec.',mom.totsolTime));
+       end
     else
         message_fc(Const,sprintf('C++ engine currently only supports Linux'));
         error('C++ engine currently only supports Linux');
