@@ -9,7 +9,6 @@
 #include <cmath>
 #include <iostream>
 #include <chrono>
-#include <Eigen/Dense>
 #include <fstream>
 #include "node.h"
 #include "edge.h"
