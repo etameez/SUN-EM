@@ -18,34 +18,41 @@
 #include <mpi.h>
 #include <omp.h>
 
-int main()
+int main(int argc, char *argv[])
 {
-    int provided;
-    MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &provided);
-
-    int size;
-    int rank;
-
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    
-    std::string path = "../../../../../examples/example-10/pec_plate.mom";
-    MoMFileReader reader(path);
-    
-    MoMSolverMPI solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
-    
-    solver.calculateZmnByFaceMPI();
-    solver.calculateVrhsInternally();
-
-    solver.calculateJMatrixSCALAPACK();
-
-    if(rank == 0)
+    if(argc != 2)
     {
-        MoMFileWriter file_writer;
-        std::string file_name = path.substr(0 , path.size() - 3) + "sol";
-        file_writer.writeIlhsToFile(file_name, solver.getIlhs());
+        std::cout << "ERROR: Invalid number of arguments" << std::endl;
     }
+    else
+    {
+        int provided;
+        MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &provided);
 
-    MPI_Finalize();
+        int size;
+        int rank;
+
+        MPI_Comm_size(MPI_COMM_WORLD, &size);
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+        std::string path = argv[1];
+        MoMFileReader reader(path);
+    
+        MoMSolverMPI solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
+    
+        solver.calculateZmnByFaceMPI();
+        solver.calculateVrhsInternally();
+
+        solver.calculateJMatrixSCALAPACK();
+
+        if(rank == 0)
+        {
+            MoMFileWriter file_writer;
+            std::string file_name = path.substr(0 , path.size() - 3) + "sol";
+            file_writer.writeIlhsToFile(file_name, solver.getIlhs());
+        }
+
+        MPI_Finalize();
+    }
     return 0;
 }

@@ -16,19 +16,26 @@
 #include "mom_solver.h"
 #include "mom_file_writer.h"
 
-int main()
+int main(int argc, char *argv[])
 {
-    // std::string path = "../../../../../examples/example-10/pec_plate_super_fine_mesh.mom";
-    std::string path = "../../../../../examples/example-10/pec_plate.mom";
-    MoMFileReader reader(path); 
-    MoMSolver solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
+    
+    if(argc != 2)
+    {
+        std::cout << "ERROR: Invalid number of arguments" << std::endl;
+    }
+    else
+    {
+        std::string path = argv[1];
+        MoMFileReader reader(path); 
+        MoMSolver solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
 
-    solver.calculateZmnByFace();
-    solver.calculateVrhsInternally();
-    solver.calculateJMatrixLAPACK();
+        solver.calculateZmnByFace();
+        solver.calculateVrhsInternally();
+        solver.calculateJMatrixLAPACK();
 
-    MoMFileWriter file_writer;
-    std::string file_name = path.substr(0 , path.size() - 3) + "sol";
-    file_writer.writeIlhsToFile(file_name, solver.getIlhs());
+        MoMFileWriter file_writer;
+        std::string file_name = path.substr(0 , path.size() - 3) + "sol";
+        file_writer.writeIlhsToFile(file_name, solver.getIlhs());
+    }
     return 0;
 }
