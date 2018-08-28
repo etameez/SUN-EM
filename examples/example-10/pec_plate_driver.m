@@ -19,8 +19,11 @@ Const = sunem_initialise('pec_plate',false);
 
 % Choose the solvers that will be executed
 Const.runMoMsolver          = true;
-
-Const.use_mpi_processes     = 3;
+Const.useCppEngine          = true;
+Const.useMPI                = true;
+Const.cppBuildDir           = '../../src/CPPMoMinterface/content/CPPMoMsolver/';
+Const.num_procs             = 4;
+Const.num_threads           = 2;
 
 % --------------------------------------------------------------------------------------------------
 % Define input files for extracting FEKO data
@@ -48,6 +51,10 @@ Const.SUNEMmomstrfilename      = 'sunem_mom_pec_plate.str';
 % TO-DO: At a later stage we can also add other meshing / geometry
 % preprocessxing, e.g. Gmsh or GiD. For now the solver setup is read from FEKO.
 [Const, Solver_setup] = parseFEKOoutfile(Const, yVectorsFEKO);
+
+[CSOL] = runCppMoMSolver(Const, Solver_setup, yVectorsFEKO, xVectorsFEKO);
+
+
 
 % 2018.06.10: If we are going to run the SUNEM MoM solver, then we need to extract our own internal
 % MoM matrix equation. Note: we can only do this after the solver data (i.e. geometry, etc. is setup)

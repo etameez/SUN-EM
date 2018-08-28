@@ -30,8 +30,12 @@ function [Solution] = runEMsolvers(Const, Solver_setup, zMatrices, yVectors, xVe
     Solution  = [];
 
     % -- MoM    
-    if (Const.runMoMsolver)        
-        Solution.mom = runMoMsolver(Const, Solver_setup, zMatrices, yVectors, xVectors);
+    if (Const.runMoMsolver)
+        if(Const.useCppEngine)
+            Solution.mom = runCppMoMSolver(Const, Solver_setup, yVectors, xVectors);
+        else
+            Solution.mom = runMoMsolver(Const, Solver_setup, zMatrices, yVectors, xVectors);
+        end
     end%if
 
     % -- C++ MoM (TO-DO: Tameez, perhaps this is a better spot to call your entire MoM C++ solver)
