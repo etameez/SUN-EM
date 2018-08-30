@@ -1,5 +1,6 @@
 function [yVectors] = calculateVrhsProper(Const, Solver_setup, EMag, theta_0, phi_0, prop_direction)
     
+    narginchk(2,2);
     % For an incident plane wave
     % Only for x-directed plane wave
     freq = Solver_setup.frequencies.samples(1);
@@ -16,13 +17,13 @@ function [yVectors] = calculateVrhsProper(Const, Solver_setup, EMag, theta_0, ph
     E_pls = zeros(num_dofs,3); % Sampled incident electric field
     E_mns = zeros(num_dofs,3);
     
-    theta_rad = theta_0 * Const.DEG2RAD;
-    phi_rad = phi_0 * Const.DEG2RAD;
+    theta_rad = Const.theta_0 * Const.DEG2RAD;
+    phi_rad = Const.phi_0 * Const.DEG2RAD;
     
-    if prop_direction == 0
-        Ex = cos(phi_rad) * cos(theta_rad);
-        Ey = sin(phi_rad) * cos(theta_rad);
-        Ez = -sin(theta_rad);
+    if Const.prop_direction == 0
+        Ex = Const.EMag * cos(phi_rad) * cos(theta_rad);
+        Ey = Const.EMag * sin(phi_rad) * cos(theta_rad);
+        Ez = Const.EMag * -sin(theta_rad);
         
         if theta_rad == pi
             Ez = 0;
