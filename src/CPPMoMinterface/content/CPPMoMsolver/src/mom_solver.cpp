@@ -278,26 +278,75 @@ void MoMSolver::calculateZmnByFace()
 void MoMSolver::calculateVrhsInternally()
 {
     // Lets calculate the Vrhs data internally
-    // This wil just be for a nomally incident x-directed plane wave
-    // TODO: Comment this
+    // This wil just be for any linear plane wave
+    // Lets start by resizing the vrhs vector
     this->vrhs_internal.resize(this->edges.size());
 
-    Node E_plus;
-    Node E_minus;
+    // Now lets get the theta and phi incident angles
+    // theta and phi also need to be in radians
+    double theta = std::stod(this->const_map["theta_0"]) * std::stod(this->const_map["DEG2RAD"]);
+    double phi = std::stod(this->const_map["phi_0"]) * std::stod(this->const_map["DEG2RAD"]);
 
+    // Now lets get the propagation direction
+    // 0 -> in the theta direction
+    // 1 -> in the phi direction
+    double propagation_direction = std::stoi(this->const_map["prop_direction"]);
+
+    // And the magnitude in V/m
+    double e_mag = std::stod(this->const_map["EMag"]);
+
+    // Lets check for the direction of propagation
+    double e_x;
+    double e_y;
+    double e_z;
+
+    if(propagation_direction == 0)
+    {
+        // For propagation in the theta direction
+        // Lets convert from spherical to cartesian co-ordinates
+        e_x = e_mag * std::cos(phi) * std::cos(theta);
+        e_y = e_mag * std::sin(phi) * std::cos(theta);
+        e_z = e_mag * -std::sin(theta);
+
+        if(theta == M_PI)
+        {
+            e_z = 0.0;
+        }
+    }
+    else if(propagation_direction == 1)
+    {
+
+    }
+
+    // Now lets make a node of E
+    // This corresponds to Equation 22 in RWG80
+    Node e(e_x, e_y, e_z);
+
+    // Now lets get the propagation vector k
+    // This corresponds to Equation 23 in RWG80
+    Node k(this->k * std::sin(theta) * std::cos(phi),
+            this->k * std::sin(theta) * std::sin(phi),
+            this->k * cos(theta)); 
+
+    Node e_plus;
+    Node e_minus;
+
+    // Lets loop over each edge
     for(int i = 0; i < this->edges.size(); i++)
     {
+        // Lets get the indices for rm^c+- (Equation 21 in RWG80)
         int triangle_plus = this->edges[i].getPlusTriangleIndex();
         int triangle_minus = this->edges[i].getMinusTriangleIndex();
+        
+        // Now lets get E^+ and E^- for the edge
+        // These reflrect Equations 21 and 22 in RWG80
+        e_plus = e.getScalarMultiply(std::exp(this->j * k.getDotNoComplex(this->triangles[triangle_plus].getCentre())));
+        e_minus = e.getScalarMultiply(std::exp(this->j * k.getDotNoComplex(this->triangles[triangle_minus].getCentre())));
 
-        E_plus = Node(std::exp(this->j * this->k * this->triangles[triangle_plus].getCentre().getZCoord()),
-                    std::complex<double>(0, 0), std::complex<double>(0, 0));
-
-        E_minus = Node(std::exp(this->j * this->k * this->triangles[triangle_minus].getCentre().getZCoord()),
-                    std::complex<double>(0, 0), std::complex<double>(0, 0));
-
-        this->vrhs_internal[i] = 0.5 * E_plus.getDot(this->edges[i].getRhoCPlus()) + 
-                                 0.5 * E_minus.getDot(this->edges[i].getRhoCMinus());
+        // Now lets get the final voltage for the edge
+        // This corresponds to Equation 18 in RWG80
+        this->vrhs_internal[i] = 0.5 * e_plus.getDot(this->edges[i].getRhoCPlus()) + 
+                                 0.5 * e_minus.getDot(this->edges[i].getRhoCMinus());
         this->vrhs_internal[i] *= this->edges[i].getLength();
     }   
 }

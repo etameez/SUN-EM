@@ -1,4 +1,4 @@
-function [yVectors] = calculateVrhsProper(Const, Solver_setup, EMag, theta_0, phi_0, prop_direction)
+function [yVectors] = calculateVrhsProper(Const, Solver_setup)
     
     narginchk(2,2);
     % For an incident plane wave

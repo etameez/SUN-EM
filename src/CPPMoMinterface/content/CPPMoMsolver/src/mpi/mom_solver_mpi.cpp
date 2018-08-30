@@ -97,6 +97,39 @@ void MoMSolverMPI::calculateVrhsInternally()
     Node E_minus;
     int m;
 
+    double theta = std::stod(this->const_map["theta_0"]) * std::stod(this->const_map["DEG2RAD"]);
+    double phi = std::stod(this->const_map["phi_0"]) * std::stod(this->const_map["DEG2RAD"]);
+    double propagation_direction = std::stoi(this->const_map["prop_direction"]);
+    double e_mag = std::stod(this->const_map["EMag"]);
+
+    double e_x;
+    double e_y;
+    double e_z;    
+
+    if(propagation_direction == 0)
+    {
+        e_x = e_mag * std::cos(phi) * std::cos(theta);
+        e_y = e_mag * std::sin(phi) * std::cos(theta);
+        e_z = e_mag * -std::sin(theta);
+
+        if(theta == M_PI)
+        {
+            e_z = 0.0;
+        }
+    }
+    else if(propagation_direction == 1)
+    {
+
+    }
+
+    Node e(e_x, e_y, e_z);
+
+    Node k(this->k * std::sin(theta) * std::cos(phi),
+            this->k * std::sin(theta) * std::sin(phi),
+            this->k * cos(theta)); 
+
+    Node e_plus;
+    Node e_minus;
 
     for(int i = 0; i < sub_edge_values.size(); i++)
     {
@@ -104,15 +137,12 @@ void MoMSolverMPI::calculateVrhsInternally()
         int triangle_plus = this->edges[m].getPlusTriangleIndex();
         int triangle_minus = this->edges[m].getMinusTriangleIndex();
 
+        e_plus = e.getScalarMultiply(std::exp(this->j * k.getDotNoComplex(this->triangles[triangle_plus].getCentre())));
+        e_minus = e.getScalarMultiply(std::exp(this->j * k.getDotNoComplex(this->triangles[triangle_minus].getCentre())));
         
-        E_plus = Node(std::exp(this->j * this->k * this->triangles[triangle_plus].getCentre().getZCoord()),
-                    std::complex<double>(0, 0), std::complex<double>(0, 0));
 
-        E_minus = Node(std::exp(this->j * this->k * this->triangles[triangle_minus].getCentre().getZCoord()),
-                    std::complex<double>(0, 0), std::complex<double>(0, 0));
-
-        tmp_vrhs_value = 0.5 * E_plus.getDot(this->edges[m].getRhoCPlus()) + 
-                         0.5 * E_minus.getDot(this->edges[m].getRhoCMinus());
+        tmp_vrhs_value = 0.5 * e_plus.getDot(this->edges[m].getRhoCPlus()) + 
+                         0.5 * e_minus.getDot(this->edges[m].getRhoCMinus());
         tmp_vrhs_value *= this->edges[m].getLength();
 
         sub_vrhs.push_back(tmp_vrhs_value.real()); 
