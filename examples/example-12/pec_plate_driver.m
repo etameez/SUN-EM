@@ -19,8 +19,11 @@ Const = sunem_initialise('pec_plate',false);
 
 % Choose the solvers that will be executed
 Const.runMoMsolver          = true;
-
-Const.use_mpi_processes     = 3;
+Const.useCppEngine          = false;
+Const.useMPI                = true;
+Const.cppBuildDir           = '../../src/CPPMoMinterface/content/CPPMoMsolver/';
+Const.num_procs             = 4;
+Const.num_threads           = 2;
 
 % --------------------------------------------------------------------------------------------------
 % Define input files for extracting FEKO data
@@ -49,6 +52,16 @@ Const.SUNEMmomstrfilename      = 'sunem_mom_pec_plate.str';
 % preprocessxing, e.g. Gmsh or GiD. For now the solver setup is read from FEKO.
 [Const, Solver_setup] = parseFEKOoutfile(Const, yVectorsFEKO);
 
+% TEST
+%[CSOL] = runCppMoMSolver(Const, Solver_setup, yVectorsFEKO, xVectorsFEKO);
+Const.theta_0 = 10;
+Const.phi_0 = 10;
+Const.prop_direction = 0;
+Const.EMag = 1;
+[yvec] = calculateVrhsProper(Const, Solver_setup);
+[err] = calculateErrorNormPercentage(yVectorsFEKO.values, yvec.values);
+writeFileForCpp(Const, Solver_setup, yVectorsFEKO);
+
 % 2018.06.10: If we are going to run the SUNEM MoM solver, then we need to extract our own internal
 % MoM matrix equation. Note: we can only do this after the solver data (i.e. geometry, etc. is setup)
 [Const, zMatricesSUNEM, yVectorsSUNEM] = extractSUNEMMoMmatrixEq(Const, Solver_setup);
@@ -57,12 +70,12 @@ Const.SUNEMmomstrfilename      = 'sunem_mom_pec_plate.str';
 compareMatrices(Const, zMatricesFEKO.values, zMatricesSUNEM.values);
 
 % For the RHS vectors, we calculate the rel. error norm % (2-norm)
-yVectorErr = calculateErrorNormPercentage(yVectorsFEKO.values, yVectorsSUNEM.values);
-message_fc(Const,sprintf('Rel. error norm. for V(RHS) compared to FEKO sol. %f percent',yVectorErr));
+%yVectorErr = calculateErrorNormPercentage(yVectorsFEKO.values, yVectorsSUNEM.values);
+message_fc(Const,sprintf('Rel. error norm. for V(RHS) compared to FEKO sol. %f percent',err));
 
 % --------------------------------------------------------------------------------------------------
 % Run the EM solver 
 % --------------------------------------------------------------------------------------------------
 % (Note: We either pass our own (internal) matrices, or those read from FEKO)
-[Solution] = runEMsolvers(Const, Solver_setup, zMatricesSUNEM, yVectorsSUNEM, xVectorsFEKO);
+[Solution] = runEMsolvers(Const, Solver_setup, zMatricesSUNEM, yvec, xVectorsFEKO);
 
