@@ -29,6 +29,8 @@ class Node
         std::complex<double> getDot(Node node);
         double getDotNoComplex(Node node);
         bool getIsComplex();
+        Node getCrossProduct(Node node);
+        Node getScalarDivide(double scalar);
 
     protected:
         double x;

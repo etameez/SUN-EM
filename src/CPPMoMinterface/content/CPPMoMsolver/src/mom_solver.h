@@ -35,6 +35,7 @@ class MoMSolver
         void calculateVrhsInternally();
         void calculateJMatrixLAPACK();
         std::vector<std::complex<double>> getIlhs();
+        void printZmnToFile(std::string path);
 
     protected:
         std::vector<Node> nodes;
@@ -52,8 +53,17 @@ class MoMSolver
         double lambda;
         double c;
 
+        int num_points_j;
+        int num_points_i;
+        std::vector<std::array<double, 2>> quadrature_weights_values_j;
+        std::vector<std::array<double, 2>> quadrature_weights_values_i;
+
         std::vector<Node> calculateAAndPhi(int p, int q);
         std::vector<std::complex<double>> calculateIpq(int p, int q);
+
+        std::vector<std::complex<double>> getIpqSING(int p);
+        std::vector<double> getMatrixXVector(std::vector<std::array<double, 3>> matrix,
+                                             std::vector<double> vec_tor);
 
 };
 #endif

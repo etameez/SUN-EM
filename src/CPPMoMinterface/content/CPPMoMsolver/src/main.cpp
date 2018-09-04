@@ -18,7 +18,6 @@
 
 int main(int argc, char *argv[])
 {
-    
     if(argc != 2)
     {
         std::cout << "ERROR: Invalid number of arguments" << std::endl;
@@ -30,12 +29,15 @@ int main(int argc, char *argv[])
         MoMSolver solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
 
         solver.calculateZmnByFace();
-        solver.calculateVrhsInternally();
-        solver.calculateJMatrixLAPACK();
+        solver.printZmnToFile("pec_plate.zmn");
+        // solver.calculateVrhsInternally();
+        // solver.calculateJMatrixLAPACK();
 
-        MoMFileWriter file_writer;
-        std::string file_name = path.substr(0 , path.size() - 3) + "sol";
-        file_writer.writeIlhsToFile(file_name, solver.getIlhs());
+        // MoMFileWriter file_writer;
+        // std::string file_name = path.substr(0 , path.size() - 3) + "sol";
+        // file_writer.writeIlhsToFile(file_name, solver.getIlhs());
+
+        // TEST
     }
     return 0;
 }

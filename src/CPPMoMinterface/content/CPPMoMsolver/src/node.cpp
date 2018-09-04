@@ -178,21 +178,39 @@ Node Node::getSubtractComplexNode(Node node)
     // but the input node is always complex
     // sum = (x1 + x2, y1 + y2, z1 + z2)
 
-    // TODO: change structure to that of getAddNode() to be more general 
+    // TODO: Rename 
 
     Node return_node;
 
     if(this->isComplex)
     {
-        return_node = Node(this->x_complex - node.getXComplexCoord(), 
-                           this->y_complex - node.getYComplexCoord(), 
-                           this->z_complex - node.getZComplexCoord());
+        if(node.getIsComplex())
+        {
+            return_node = Node(this->x_complex - node.getXComplexCoord(), 
+                               this->y_complex - node.getYComplexCoord(), 
+                               this->z_complex - node.getZComplexCoord());
+        }
+        else
+        {
+            return_node = Node(this->x_complex - node.getXCoord(),
+                               this->y_complex - node.getYCoord(),
+                               this->z_complex - node.getZCoord());
+        }
     }
     else
     {
-        return_node = Node(this->x - node.getXComplexCoord(), 
-                           this->y - node.getYComplexCoord(), 
-                           this->z - node.getZComplexCoord());
+        if(node.getIsComplex())
+        {
+            return_node = Node(this->x - node.getXComplexCoord(), 
+                               this->y - node.getYComplexCoord(), 
+                               this->z - node.getZComplexCoord());
+        }
+        else
+        {
+            return_node = Node(this->x - node.getXCoord(),
+                               this->y - node.getYCoord(),
+                               this->z - node.getZCoord());
+        }
     }
     return return_node;
 }
@@ -238,3 +256,39 @@ bool Node::getIsComplex()
     // Lets check if the node is complex
     return this->isComplex;
 }
+
+Node Node::getCrossProduct(Node node)
+{
+    // TODO: Make general
+    
+    // Lets get the cross product of two vectors
+    // http://tutorial.math.lamar.edu/Classes/CalcII/CrossProduct.aspx
+
+    return Node(this->y * node.getZCoord() - this->z * node.getYCoord(),
+                this->z * node.getXCoord() - this->x * node.getZCoord(),
+                this->x * node.getYCoord() - this->y * node.getXCoord());           
+}
+
+Node Node::getScalarDivide(double scalar)
+{
+   // Lets divide a node by a real number
+   
+   Node return_node;
+
+   if(this->isComplex)
+   {
+        return_node = Node(this->x_complex / std::complex<double>(scalar, 0),
+                           this->y_complex / std::complex<double>(scalar, 0),
+                           this->z_complex / std::complex<double>(scalar, 0));
+   } 
+   else
+   {
+        return_node = Node(this->x / scalar,
+                           this->y / scalar,
+                           this->z / scalar);
+   }
+   return return_node;
+}
+
+
+
