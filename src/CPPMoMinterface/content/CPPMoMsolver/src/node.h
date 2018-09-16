@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <complex>
+#include <iostream>
 
 class Node
 {
@@ -31,6 +32,8 @@ class Node
         bool getIsComplex();
         Node getCrossProduct(Node node);
         Node getScalarDivide(double scalar);
+        void printNode();
+        Node getHat();
 
     protected:
         double x;

@@ -36,7 +36,8 @@ class MoMSolver
         void calculateJMatrixLAPACK();
         std::vector<std::complex<double>> getIlhs();
         void printZmnToFile(std::string path);
-
+        std::vector<double> getMatrixXVector(std::vector<std::array<double, 3>> matrix,
+                                             std::vector<double> vec_tor);
     protected:
         std::vector<Node> nodes;
         std::vector<Triangle> triangles;
@@ -62,8 +63,7 @@ class MoMSolver
         std::vector<std::complex<double>> calculateIpq(int p, int q);
 
         std::vector<std::complex<double>> getIpqSING(int p);
-        std::vector<double> getMatrixXVector(std::vector<std::array<double, 3>> matrix,
-                                             std::vector<double> vec_tor);
+
 
 };
 #endif

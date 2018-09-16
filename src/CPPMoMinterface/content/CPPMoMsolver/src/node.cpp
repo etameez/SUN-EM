@@ -290,5 +290,27 @@ Node Node::getScalarDivide(double scalar)
    return return_node;
 }
 
+void Node::printNode()
+{
+    if(this->isComplex)
+    {
+        std::cout << "[" << this->x_complex << " "
+                         << this->y_complex << " "
+                         << this->z_complex << "]"
+                         << std::endl;
+    }
+    else
+    {
+        std::cout << "[" << this->x << " "
+                         << this->y << " "
+                         << this->z << "]"
+                         << std::endl;
+    }
+}
+
+Node Node::getHat()
+{
+    return this->getScalarDivide(this->getNorm());
+}
 
 

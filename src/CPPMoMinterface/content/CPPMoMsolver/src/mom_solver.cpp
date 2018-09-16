@@ -419,6 +419,14 @@ std::vector<Node> MoMSolver::calculateAAndPhi(int p, int q)
     // Remember, the vector is ordered in [Ipq Ipq_xi Ipq_eta Ipq_zeta]
     std::vector<std::complex<double>> i_vector = this->calculateIpq(p, q);
 
+    if(p==q && p==0)
+    {
+        std::cout << i_vector[0] << std::endl;
+        std::cout << i_vector[1] << std::endl;
+        std::cout << i_vector[2] << std::endl;
+        std::cout << i_vector[3] << std::endl;
+    }
+
     // There are three values for the magnetic vector potential (Apq) and one for the scalar
     // potential(Phipq)
     // Remember, from calculateIpq, r1 -> vertex_1, r2 -> vertex_2 and r3 -> vertex_3
@@ -503,11 +511,11 @@ std::vector<std::complex<double>> MoMSolver::calculateIpq(int p, int q)
     {
         // Lets do some singularity extraction
         i_vector = this->getIpqSING(p);
-            std::cout   << p           << " "
-                        << i_vector[0] << " "
-                        << i_vector[1] << " " 
-                        << i_vector[2] << " " 
-                        << i_vector[3] << std::endl; 
+            // std::cout   << p           << " "
+            //             << i_vector[0] << " "
+            //             << i_vector[1] << " " 
+            //             << i_vector[2] << " " 
+            //             << i_vector[3] << std::endl; 
     }
     else
     {
@@ -607,12 +615,13 @@ std::vector<std::complex<double>> MoMSolver::getIpqSING(int p)
     std::complex<double> Ipq_xi = std::complex<double>(0, 0);     // RWG80 34b
     std::complex<double> Ipq_eta = std::complex<double>(0, 0);    // RWG80 34c
     std::complex<double> Ipq_zeta = std::complex<double>(0, 0);   // RWG80 34d
+    std::complex<double> Ipq_zt = std::complex<double>(0, 0);   // RWG80 34d
 
     // Lets declare the vectors that will store the I values for the three sub triangles
     // Don't forget to initialize them to zero
-    std::vector<std::complex<double>> sub_ipq(3, std::complex<double>(0, 0));
-    std::vector<std::complex<double>> sub_ipq_xi(3, std::complex<double>(0, 0));
-    std::vector<std::complex<double>> sub_ipq_eta(3, std::complex<double>(0, 0));
+    // std::vector<std::complex<double>> sub_ipq(3, std::complex<double>(0, 0));
+    // std::vector<std::complex<double>> sub_ipq_xi(3, std::complex<double>(0, 0));
+    // std::vector<std::complex<double>> sub_ipq_eta(3, std::complex<double>(0, 0));
 
     // Lets loop over the three as of yet declared sub triangles
     for(int sub_triangle_index = 0; sub_triangle_index < 3; sub_triangle_index++)
@@ -642,9 +651,9 @@ std::vector<std::complex<double>> MoMSolver::getIpqSING(int p)
                 r2_prime = this->nodes[this->triangles[p].getVertex2()]; 
                 r3_prime = this->nodes[this->triangles[p].getVertex3()];
                   
-                std::array<double, 3> row_1 = {1 / 3, 0, 0}; 
-                std::array<double, 3> row_2 = {1 / 3, 1, 0}; 
-                std::array<double, 3> row_3 = {1 / 3, 0, 1};
+                std::array<double, 3> row_1 = {1.0 / 3.0, 0, 0}; 
+                std::array<double, 3> row_2 = {1.0 / 3.0, 1, 0}; 
+                std::array<double, 3> row_3 = {1.0 / 3.0, 0, 1};
                     
                 T.push_back(row_1); 
                 T.push_back(row_2); 
@@ -656,9 +665,9 @@ std::vector<std::complex<double>> MoMSolver::getIpqSING(int p)
                 r2_prime = this->nodes[this->triangles[p].getVertex3()];
                 r3_prime = this->nodes[this->triangles[p].getVertex1()];
 
-                std::array<double, 3> row_1 = {1 / 3, 0, 1}; 
-                std::array<double, 3> row_2 = {1 / 3, 0, 0}; 
-                std::array<double, 3> row_3 = {1 / 3, 1, 0};
+                std::array<double, 3> row_1 = {1.0 / 3.0, 0, 1}; 
+                std::array<double, 3> row_2 = {1.0 / 3.0, 0, 0}; 
+                std::array<double, 3> row_3 = {1.0 / 3.0, 1, 0};
                     
                 T.push_back(row_1); 
                 T.push_back(row_2); 
@@ -671,9 +680,9 @@ std::vector<std::complex<double>> MoMSolver::getIpqSING(int p)
                 r2_prime = this->nodes[this->triangles[p].getVertex1()];
                 r3_prime = this->nodes[this->triangles[p].getVertex2()];
 
-                std::array<double, 3> row_1 = {1 / 3, 1, 0}; 
-                std::array<double, 3> row_2 = {1 / 3, 0, 1}; 
-                std::array<double, 3> row_3 = {1 / 3, 0, 0};
+                std::array<double, 3> row_1 = {1.0 / 3.0, 1, 0}; 
+                std::array<double, 3> row_2 = {1.0 / 3.0, 0, 1}; 
+                std::array<double, 3> row_3 = {1.0 / 3.0, 0, 0};
                     
                 T.push_back(row_1); 
                 T.push_back(row_2); 
@@ -687,7 +696,8 @@ std::vector<std::complex<double>> MoMSolver::getIpqSING(int p)
         // This corresponds to Equation 4 in KW05
         Node l1_prime = r3_prime.getSubtractComplexNode(r2_prime);
         Node l2_prime = r1_prime.getSubtractComplexNode(r3_prime);
-        Node l3_prime = r2_prime.getSubtractComplexNode(r1_prime); 
+        Node l3_prime = r2_prime.getSubtractComplexNode(r1_prime);
+        Node l1_prime_hat = l1_prime.getHat(); 
 
         // Lets get n_hat'
         Node l1_cross_l2 = l1_prime.getCrossProduct(l2_prime);
@@ -699,7 +709,42 @@ std::vector<std::complex<double>> MoMSolver::getIpqSING(int p)
         // Finally, lets get h_1'
         Node h1_prime = l1_prime.getCrossProduct(n_hat_prime);
         h1_prime = h1_prime.getScalarMultiply(2 * a_prime / std::pow(l1_prime.getNorm(), 2)); 
+        Node h1_prime_hat = h1_prime.getHat();
 
+        // // TEST
+        // std::cout << "Sub => " << sub_triangle_index << std::endl;
+        // std::cout << "V1 => ";
+        // this->nodes[this->triangles[p].getVertex1()].printNode();
+        // std::cout << "V2 => ";
+        // this->nodes[this->triangles[p].getVertex2()].printNode();
+        // std::cout << "V3 => ";
+        // this->nodes[this->triangles[p].getVertex3()].printNode();
+        // std::cout << "Centre => ";
+        // this->triangles[p].getCentre().printNode();
+        // std::cout << "R1p => ";
+        // r1_prime.printNode();
+        // std::cout << "R2p => ";
+        // r2_prime.printNode();
+        // std::cout << "R3p => ";
+        // r3_prime.printNode();
+        // std::cout << "l1p => ";
+        // l1_prime.printNode();
+        // std::cout << "l2p => ";
+        // l2_prime.printNode();
+        // std::cout << "l3p => ";
+        // l3_prime.printNode();
+        // std::cout << "l1pH => ";
+        // l1_prime_hat.printNode();
+        // std::cout << "LXL => ";
+        // l1_cross_l2.printNode();
+        // std::cout << "n_p => ";
+        // n_hat_prime.printNode();
+        // std::cout << "A => " << a_prime << std::endl;
+        // std::cout << "h1p => ";
+        // h1_prime.printNode();
+        // std::cout << std::endl;
+        // std::cout << std::endl;
+        
         // Now lets loop over num_points_j
         // This corresponds to Equation 10 in KW05
         for(int j = 0; j < this->num_points_j; j++)
@@ -711,11 +756,11 @@ std::vector<std::complex<double>> MoMSolver::getIpqSING(int p)
             //                    y'      > Equation 13
             // from KW05
             // Lets first get x_l and x_v
-            double x_l = h1_prime.getCrossProduct(l2_prime).getDotNoComplex(n_hat_prime) * 
+            double x_l = h1_prime_hat.getCrossProduct(l2_prime).getDotNoComplex(n_hat_prime) * 
                          (1 - this->quadrature_weights_values_j[j][1]); 
-            double x_u = h1_prime.getCrossProduct(l2_prime).getDotNoComplex(n_hat_prime.getScalarMultiply((double)-1)) * 
+            double x_u = h1_prime_hat.getCrossProduct(l2_prime).getDotNoComplex(n_hat_prime.getScalarMultiply((double)-1)) * 
                          (1 - this->quadrature_weights_values_j[j][1]);
-                
+
             // Now lets get y'
             double y_prime = h1_prime.getNorm() * (1 - this->quadrature_weights_values_j[j][1]);
 
@@ -726,6 +771,14 @@ std::vector<std::complex<double>> MoMSolver::getIpqSING(int p)
             double u_l = std::asinh(x_l / std::sqrt(std::pow(y_prime, 2)));             
             double u_u = std::asinh(x_u / std::sqrt(std::pow(y_prime, 2)));             
 
+            // if(sub_triangle_index == 0 && j == 0)
+            // {
+            //     std::cout << "xl => " << x_l << std::endl;
+            //     std::cout << "xu => " << x_u << std::endl;
+            //     std::cout << "yp => " << y_prime << std::endl;
+            //     std::cout << "ul => " << u_l << std::endl;
+            //     std::cout << "uu => " << u_u << std::endl;
+            // }
             // Now lets loop over num_points_i
             // This corresponds to Equation 10 in KW05
             for(int i = 0; i < this->num_points_i; i++)
@@ -755,8 +808,8 @@ std::vector<std::complex<double>> MoMSolver::getIpqSING(int p)
 
                 // Since all the pieces are available, lets get xi_3'^(i,j)
                 // Lets break Equation 13 up to have an easier time
-                Node sub_numerator = h1_prime.getScalarMultiply(y_prime);
-                sub_numerator = sub_numerator.getSubtractComplexNode(l1_prime.getScalarMultiply(x_prime_ij));
+                Node sub_numerator = h1_prime_hat.getScalarMultiply(y_prime);
+                sub_numerator = sub_numerator.getSubtractComplexNode(l1_prime_hat.getScalarMultiply(x_prime_ij));
                 sub_numerator = l3_prime.getCrossProduct(sub_numerator);
                 double xi3_ij = n_hat_prime.getDotNoComplex(sub_numerator) / (2 * a_prime);
 
@@ -789,38 +842,93 @@ std::vector<std::complex<double>> MoMSolver::getIpqSING(int p)
 
                 double R_ij = R_inner.getNorm();
 
+                // if(sub_triangle_index == 0 && j == 0 && i == 0)
+                // {
+                //     std::cout << "xi1ij => " << xi1_ij << std::endl;
+                //     std::cout << "xi2ij => " << xi2_ij << std::endl;
+                //     std::cout << "xi3ij => " << xi3_ij << std::endl;
+                //     std::cout << "R_ij => " << R_ij << std::endl;
+                //     std::cout << "xik1 => " << xi_k_vector[0] << std::endl;
+                //     std::cout << "xik2 => " << xi_k_vector[1] << std::endl;
+                //     std::cout << "xik3 => " << xi_k_vector[2] << std::endl;
+                //     std::cout << "uij => " << u_ij << std::endl;
+                //     std::cout << "xprimeji => " << x_prime_ij << std::endl;
+
+                //     std::cout << std::endl;
+                //     for(int pp = 0; pp  < 3;pp++)
+                //     {
+                //         std::cout << T[pp][0] << " "
+                //                   << T[pp][1] << " "
+                //                   << T[pp][2] << std::endl;
+                //     }
+                // }
+
+
                 // Now, lets finish off Equation 10
                 // Lets calculate the three of the four I's
-                Ipq += this->quadrature_weights_values_i[j][0] *
+                Ipq += 
+                       this->quadrature_weights_values_j[j][0] *
                        this->quadrature_weights_values_i[i][0] *
                        h1_prime.getNorm()                      *
                        (u_u - u_l)                             *
+                       (xi_k_vector[0] + xi_k_vector[1] + xi_k_vector[2]) *
                        std::exp(std::complex<double>(-1,0) * this->j * this->k * R_ij);                
 
-                Ipq_xi += this->quadrature_weights_values_i[j][0] *
+                Ipq_xi += 
+                          this->quadrature_weights_values_j[j][0] *
                           this->quadrature_weights_values_i[i][0] *
                           h1_prime.getNorm()                      *
                           (u_u - u_l)                             *
                           xi_k_vector[0]                          *
+                          // xi1_ij                                  *
                           std::exp(std::complex<double>(-1,0) * this->j * this->k * R_ij);
 
-                Ipq_eta += this->quadrature_weights_values_i[j][0] *
+                Ipq_eta += 
+                           this->quadrature_weights_values_j[j][0] *
                            this->quadrature_weights_values_i[i][0] *
                            h1_prime.getNorm()                      *
                            (u_u - u_l)                             *
                            xi_k_vector[1]                          *
+                           // xi2_ij                                  *
                            std::exp(std::complex<double>(-1,0) * this->j * this->k * R_ij);
+                
+                Ipq_zt += 
+                           this->quadrature_weights_values_j[j][0] *
+                           this->quadrature_weights_values_i[i][0] *
+                           h1_prime.getNorm()                      *
+                           (u_u - u_l)                             *
+                           xi_k_vector[2]                          *
+                           // xi3_ij                          *
+                           std::exp(std::complex<double>(-1,0) * this->j * this->k * R_ij);
+                if(i==0 && j==0 && sub_triangle_index == 0 && p==0)
+                {
+                    std::cout << this->quadrature_weights_values_j[j][0] << std::endl;
+                     std::cout <<   this->quadrature_weights_values_i[i][0] << std::endl;
+                      std::cout <<  h1_prime.getNorm()                      << std::endl;
+                     std::cout <<   (u_u - u_l)                             << std::endl;
+                      std::cout <<  std::exp(std::complex<double>(-1,0) * this->j * this->k * R_ij)<< std::endl;
+                      std::cout << std::endl;
+                       std::cout << xi_k_vector[0] + xi_k_vector[1] + xi_k_vector[2]<< std::endl;
+                      std::cout << std::endl;
+                } 
             }
         }
     }
     // Lets get the final I
-    Ipq_zeta = Ipq - Ipq_xi - Ipq_zeta;
+    // Ipq_zeta = Ipq - Ipq_xi - Ipq_zeta;
+    Ipq_zeta = Ipq_zt;
+
+    // std::cout << Ipq << std::endl;
+    // std::cout << Ipq_xi << std::endl;
+    // std::cout << Ipq_eta << std::endl;
+    // std::cout << Ipq_zeta << std::endl;
+    // std::cout << Ipq_zt << std::endl;
 
     // Lets divide by the 2 * triangle area as noted in Equation 31 in RWG80
-    Ipq = Ipq / (2 * this->triangles[p].getArea());
-    Ipq_xi = Ipq / (2 * this->triangles[p].getArea());
-    Ipq_eta = Ipq / (2 * this->triangles[p].getArea());
-    Ipq_zeta = Ipq / (2 * this->triangles[p].getArea());
+    Ipq = Ipq / (2.0 * this->triangles[p].getArea());
+    Ipq_xi = Ipq_xi / (2.0 * this->triangles[p].getArea());
+    Ipq_eta = Ipq_eta / (2.0 * this->triangles[p].getArea());
+    Ipq_zeta = Ipq_zeta / (2.0 * this->triangles[p].getArea());
 
     // Now lets return the I values
     std::vector<std::complex<double>> i_vector;
