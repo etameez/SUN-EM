@@ -57,10 +57,12 @@ function [] = writeFileForCpp(Const, FEKO_data, yVectors)
         
         field_names = fieldnames(Const);
         
-        fprintf(fid, '%-30s\t\t%d\n\n', 'NUM_FIELDS', length(field_names));
+        fprintf(fid, '%-30s\t\t%d\n\n', 'NUM_FIELDS', length(field_names) - 1);
               
         for i = 1:length(field_names)
-            fprintf(fid, '%-30s\t\t%s\n' ,string(field_names(i)) ,string(Const.(string(field_names(i)))));
+            if string(field_names(i)) ~= 'freqData'
+                fprintf(fid, '%-30s\t\t%s\n' ,string(field_names(i)) ,string(Const.(string(field_names(i)))));
+            end
         end
         fprintf(fid, 'CONST END\n\n');
         

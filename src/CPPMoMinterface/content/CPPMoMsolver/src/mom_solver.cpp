@@ -41,7 +41,7 @@ MoMSolver::MoMSolver(std::vector<Node> nodes,
     // There are three frequency values in the const_map
     // freqStart, freqEnd and freqData
     // The one needed is freqData
-    this->frequency = std::stod(this->const_map["freqData"]);
+    this->frequency = std::stod(this->const_map["cppFreq"]);
 
     // Lets get omega(w)
     // This is used in equations 17 and 33 of RWG80

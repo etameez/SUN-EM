@@ -29,7 +29,7 @@ MoMSolverMPI::MoMSolverMPI(std::vector<Node> nodes,
 
     // Lets define some constants
     this->c = std::stod(this->const_map["C0"]);
-    this->frequency = std::stod(this->const_map["freqData"]);
+    this->frequency = std::stod(this->const_map["cppFreq"]);
     this->omega = 2 * M_PI * this->frequency;
     this->lambda = this->c / this->frequency;
     this->k = 2 * M_PI / this->lambda;
