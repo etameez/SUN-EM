@@ -177,7 +177,41 @@ function [Const, FEKO_data] = parseFEKOoutfile(Const, yVectors)
         if (g > 0)
             geometry_found = true;
         end%if
-
+        
+        % TESTSTSTSTSTSTST
+        g = strfind(line, 'EXCITATION BY VOLTAGE SOURCE AT AN EDGE');
+        if (g > 0)
+            Const.edge_feed = true;
+        end
+        
+        if (Const.edge_feed)
+            g = strfind(line, 'Open circuit voltage in V:');
+            if (g > 0)
+                voltage_info = strsplit(line);
+                Const.EMag = str2num(voltage_info{9});
+            end
+            
+            g = strfind(line, 'Indices of the edges:');
+            if (g > 0)
+                edge_info = strsplit(line);    
+                Const.feed_edge = str2num(edge_info{6});
+            end
+        else
+            g = strfind(line, 'Direction of incidence:');
+            if (g > 0)
+                edge_info = strsplit(line);    
+            end
+            g = strfind(line, 'Direction of propag.:');
+            if (g > 0)
+                edge_info = strsplit(line);    
+            end
+            g = strfind(line, 'Field strength in V/m:');
+            if (g > 0)
+                edge_info = strsplit(line);    
+            end
+        end
+        
+        
     end%while end_flag == 0
     fclose('all');
 
