@@ -32,6 +32,7 @@ class MoMSolver
                   std::map<std::string, std::string> const_map);
 
         void calculateZmnByFace();
+        void calculateZmnByEdge();
         void calculateVrhsInternally();
         void calculateJMatrixLAPACK();
         std::vector<std::complex<double>> getIlhs();
@@ -63,6 +64,8 @@ class MoMSolver
         std::vector<std::complex<double>> calculateIpq(int p, int q);
 
         std::vector<std::complex<double>> getIpqSING(int p);
+
+        std::vector<Node> calculateAAndPhiByEdge(int p, int q, int free_vertex, double edge_length);
 
 
 };

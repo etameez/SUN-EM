@@ -71,6 +71,7 @@ MoMFileReader::MoMFileReader(std::string file_path)
 
     if(!(str == "CONST END"))
     {
+      std::cout << str << std::endl;
       std::cout << "ERROR: THERE IS SOMETHING WRONG WITH THE FILE" << std::endl;
       std::cout << "ERROR: THE NUMBER OF CONST ENTRIES ARE WRONG" << std::endl;
     }

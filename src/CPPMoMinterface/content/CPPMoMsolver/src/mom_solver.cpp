@@ -505,9 +505,9 @@ std::vector<std::complex<double>> MoMSolver::calculateIpq(int p, int q)
     // This is defined in const_map whether to use the singularity treatment or not
     std::vector<std::complex<double>> i_vector;
 
-
+    bool sing = false;
     // Lets start by checking for a singularity(p == q)
-    if(p == q) // TODO: change to p == q && SING == True
+    if(p == q && sing) // TODO: change to p == q && SING == True
     {
         // Lets do some singularity extraction
         i_vector = this->getIpqSING(p);
@@ -957,8 +957,85 @@ std::vector<double> MoMSolver::getMatrixXVector(std::vector<std::array<double, 3
     return return_vector;
 }
 
+void MoMSolver::calculateZmnByEdge()
+{
+    int num_quadrature_points = std::stoi(this->const_map["QUAD_PTS"]); 
+    this->quadrature_weights_values = getQuadratureWeightsAndValues(num_quadrature_points);
+    this->z_mn = new std::complex<double>[this->edges.size() * this->edges.size()];
+
+    for(int m = 0; m < this->edges.size(); m++)
+    {
+        for(int n = 0; n < this->edges.size(); n++)
+        {
+            int pp_plus = this->edges[m].getPlusTriangleIndex();
+            int pp_minus = this->edges[m].getMinusTriangleIndex();
+            int qq_plus = this->edges[n].getPlusTriangleIndex();
+            int qq_minus = this->edges[n].getMinusTriangleIndex();
+
+            int plus_free_vertex = this->edges[n].getPlusFreeVertex();
+            int minus_free_vertex = this->edges[n].getMinusFreeVertex();
+
+            std::vector<Node> a_and_phi;
+            a_and_phi = this->calculateAAndPhiByEdge(pp_plus, qq_plus, plus_free_vertex, this->edges[n].getLength());
+            Node Amn_pls_src_pls = a_and_phi[0].getScalarMultiply(-1);
+            std::complex<double> phi_mn_pls_src_pls = a_and_phi[1].getXComplexCoord();
+
+            a_and_phi = this->calculateAAndPhiByEdge(pp_plus, qq_minus, minus_free_vertex, this->edges[n].getLength());
+            Node Amn_pls_src_mns = a_and_phi[0];
+            std::complex<double> phi_mn_pls_src_mns = std::complex<double>(-1.0,0) * a_and_phi[1].getXComplexCoord();           
+
+            Node Amn_pls = Amn_pls_src_pls.getAddNode(Amn_pls_src_mns);
+            std::complex<double> phi_mn_pls = phi_mn_pls_src_pls + phi_mn_pls_src_mns;
+
+            a_and_phi = this->calculateAAndPhiByEdge(pp_minus, qq_plus, plus_free_vertex, this->edges[n].getLength());
+            Node Amn_mns_src_pls = a_and_phi[0].getScalarMultiply(-1);
+            std::complex<double> phi_mn_mns_src_pls = a_and_phi[1].getXComplexCoord();
+
+            a_and_phi = this->calculateAAndPhiByEdge(pp_minus, qq_minus, minus_free_vertex, this->edges[n].getLength());
+            Node Amn_mns_src_mns = a_and_phi[0];
+            std::complex<double> phi_mn_mns_src_mns = std::complex<double>(-1.0,0) * a_and_phi[1].getXComplexCoord();
+
+            Node Amn_mns = Amn_mns_src_pls.getAddNode(Amn_mns_src_mns);
+            std::complex<double> phi_mn_mns = phi_mn_mns_src_pls + phi_mn_mns_src_mns;
 
 
+            this->z_mn[n + this->edges.size() * m] = this->j * this->omega * 
+                                                    (Amn_pls.getDot(this->edges[m].getRhoCPlus()) / std::complex<double>(2.0,0) +
+                                                    Amn_mns.getDot(this->edges[m].getRhoCMinus()) / std::complex<double>(2.0,0)) +
+                                                    phi_mn_mns - phi_mn_pls;
+
+            this->z_mn[n + this->edges.size() * m] *= this->edges[m].getLength(); 
+        }
+    }
+}
+
+std::vector<Node> MoMSolver::calculateAAndPhiByEdge(int p, int q, int free_vertex, double edge_length)
+{
+    std::vector<std::complex<double>> i_vector = this->calculateIpq(p, q);
+
+    Node r1 = this->nodes[this->triangles[q].getVertex1()];
+    Node r2 = this->nodes[this->triangles[q].getVertex2()];
+    Node r3 = this->nodes[this->triangles[q].getVertex3()];
+
+    Node ri = this->nodes[free_vertex];
+
+    Node temp_node = r1.getScalarMultiply(i_vector[1]);
+    temp_node = temp_node.getAddNode(r2.getScalarMultiply(i_vector[2]));
+    temp_node = temp_node.getAddNode(r3.getScalarMultiply(i_vector[3]));
+    temp_node = temp_node.getSubtractComplexNode(ri.getScalarMultiply(i_vector[0]));
+
+    Node mag_vec_pot = temp_node.getScalarMultiply(std::stod(this->const_map["MU_0"]) * edge_length / (4 * M_PI));
+
+    std::complex<double> scal_pot = std::complex<double>(1.0,0) * edge_length / (this->j * std::complex<double>(2.0,0) * M_PI * this->omega
+                                 * std::stod(this->const_map["EPS_0"])) * i_vector[0];
+    Node scal_pot_node(scal_pot, 0, 0);
+
+    std::vector<Node> return_vector;
+    return_vector.push_back(mag_vec_pot);
+    return_vector.push_back(scal_pot_node);
+
+    return return_vector;                                         
+}
 
 
 
