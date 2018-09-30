@@ -181,7 +181,7 @@ function [Const, FEKO_data] = parseFEKOoutfile(Const, yVectors)
         % TESTSTSTSTSTSTST
         g = strfind(line, 'EXCITATION BY VOLTAGE SOURCE AT AN EDGE');
         if (g > 0)
-            Const.edge_feed = true;
+            Const.edge_feed = 1;
         end
         
         if (Const.edge_feed)

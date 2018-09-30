@@ -382,7 +382,7 @@ function Const = sunem_init(Const, yVectors)
         Const.domain_decomposition = false;
     end
     
-    Const.edge_feed   = false;
+    Const.edge_feed   = 0;
     
     % Finished
     message_fc(Const,sprintf('Done'));
