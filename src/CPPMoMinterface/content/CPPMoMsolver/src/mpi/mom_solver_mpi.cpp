@@ -44,143 +44,145 @@ void MoMSolverMPI::calculateVrhsInternally()
 {
     // Lets calculate the Vrhs data internally
     // This wil just be for a nomally incident x-directed plane wave
-    // TODO: make more general
-
-    // Node E(1, 0, 0);
-    // this->vrhs_internal.resize(this->edges.size());
-
-    // for(int i = 0; i < this->edges.size(); i++)
-    // {
-    //     this->vrhs_internal[i] = E.getDotNoComplex(this->edges[i].getRhoCPlus()) / 2 +
-    //                              E.getDotNoComplex(this->edges[i].getRhoCMinus()) / 2;
-    //     this->vrhs_internal[i] = this->vrhs_internal[i] * this->edges[i].getLength();  
-    // }
-
 
     int size;
     int rank;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    std::vector<int> sub_edge_values;
-    int index;
-
-    if(rank == 0)
+    if(std::stoi(this->const_map["edge_feed"]) == 1)
     {
-        // The index does not need used here since process 0 will always start at index == 0
-        // The number of values allocated to the process is determined by numValuesMPI
-        for(int i = 0; i < this->numValuesMPI(size, rank, this->edges.size()); i++)
+        if(rank == 0)
         {
-            sub_edge_values.push_back(i);
+            this->vrhs_internal.resize(this->edges.size());
+            int edge_index = std::stoi(this->const_map["feed_edge"]) - 1;
+
+            this->vrhs_internal[edge_index] = -1 * this->edges[edge_index].getLength() * 
+                                               std::stod(this->const_map["EMag"]);
         }
     }
     else
-    {   
-        // It gets a bit more complex here since non root processes need to calculate
-        // how many edge_values were sent to the preceeding processes and set the index accordingly
-        index = 0;
-        for(int i = 0; i < rank; i++)
-        {
-            index += this->numValuesMPI(size, i, this->edges.size());
-        }
-        for(int i = index; i < this->numValuesMPI(size, rank, this->edges.size()) + index; i++)
-        {
-            sub_edge_values.push_back(i);
-        }
-    }
-
-    std::vector<double> sub_vrhs;
-
-    std::complex<double> tmp_vrhs_value;
-
-    Node E_plus;
-    Node E_minus;
-    int m;
-
-    double theta = std::stod(this->const_map["theta_0"]) * std::stod(this->const_map["DEG2RAD"]);
-    double phi = std::stod(this->const_map["phi_0"]) * std::stod(this->const_map["DEG2RAD"]);
-    double propagation_direction = std::stoi(this->const_map["prop_direction"]);
-    double e_mag = std::stod(this->const_map["EMag"]);
-
-    double e_x;
-    double e_y;
-    double e_z;    
-
-    if(propagation_direction == 0)
     {
-        e_x = e_mag * std::cos(phi) * std::cos(theta);
-        e_y = e_mag * std::sin(phi) * std::cos(theta);
-        e_z = e_mag * -std::sin(theta);
-
-        if(theta == M_PI)
-        {
-            e_z = 0.0;
-        }
-    }
-    else if(propagation_direction == 1)
-    {
-
-    }
-
-    Node e(e_x, e_y, e_z);
-
-    Node k(this->k * std::sin(theta) * std::cos(phi),
-            this->k * std::sin(theta) * std::sin(phi),
-            this->k * cos(theta)); 
-
-    Node e_plus;
-    Node e_minus;
-
-    for(int i = 0; i < sub_edge_values.size(); i++)
-    {
-        m = sub_edge_values[i];
-        int triangle_plus = this->edges[m].getPlusTriangleIndex();
-        int triangle_minus = this->edges[m].getMinusTriangleIndex();
-
-        e_plus = e.getScalarMultiply(std::exp(this->j * k.getDotNoComplex(this->triangles[triangle_plus].getCentre())));
-        e_minus = e.getScalarMultiply(std::exp(this->j * k.getDotNoComplex(this->triangles[triangle_minus].getCentre())));
         
 
-        tmp_vrhs_value = 0.5 * e_plus.getDot(this->edges[m].getRhoCPlus()) + 
-                         0.5 * e_minus.getDot(this->edges[m].getRhoCMinus());
-        tmp_vrhs_value *= this->edges[m].getLength();
+        std::vector<int> sub_edge_values;
+        int index;
 
-        sub_vrhs.push_back(tmp_vrhs_value.real()); 
-        sub_vrhs.push_back(tmp_vrhs_value.imag()); 
-    }
-
-    std::vector<int> receive_count;
-    std::vector<int> displs;
-    std::vector<double> tmp_vrhs;
-    
-    if(rank == 0)
-    {
-        for(int i = 0; i < size; i++)
+        if(rank == 0)
         {
-            receive_count.push_back(this->numValuesMPI(size, i, this->edges.size()) * 2);
+            // The index does not need used here since process 0 will always start at index == 0
+            // The number of values allocated to the process is determined by numValuesMPI
+            for(int i = 0; i < this->numValuesMPI(size, rank, this->edges.size()); i++)
+            {
+                sub_edge_values.push_back(i);
+            }
+        }
+        else
+        {   
+            // It gets a bit more complex here since non root processes need to calculate
+            // how many edge_values were sent to the preceeding processes and set the index accordingly
+            index = 0;
+            for(int i = 0; i < rank; i++)
+            {
+                index += this->numValuesMPI(size, i, this->edges.size());
+            }
+            for(int i = index; i < this->numValuesMPI(size, rank, this->edges.size()) + index; i++)
+            {
+                sub_edge_values.push_back(i);
+            }
         }
 
-        displs.resize(size);
-        displs[0] = 0;
-        for(int i = 1; i < size; i++)
+        std::vector<double> sub_vrhs;
+
+        std::complex<double> tmp_vrhs_value;
+
+        Node E_plus;
+        Node E_minus;
+        int m;
+
+        double theta = std::stod(this->const_map["theta_0"]) * std::stod(this->const_map["DEG2RAD"]);
+        double phi = std::stod(this->const_map["phi_0"]) * std::stod(this->const_map["DEG2RAD"]);
+        double propagation_direction = std::stoi(this->const_map["prop_direction"]);
+        double e_mag = std::stod(this->const_map["EMag"]);
+
+        double e_x;
+        double e_y;
+        double e_z;    
+
+        if(propagation_direction == 0)
         {
-            displs[i] = displs[i - 1] + receive_count[i - 1];
+            e_x = e_mag * std::cos(phi) * std::cos(theta);
+            e_y = e_mag * std::sin(phi) * std::cos(theta);
+            e_z = e_mag * -std::sin(theta);
+
+            if(theta == M_PI)
+            {
+                e_z = 0.0;
+            }
         }
-        tmp_vrhs.resize(this->edges.size() * 2);
-    }
-
-    MPI_Gatherv(&sub_vrhs[0], sub_vrhs.size(), MPI_DOUBLE, &tmp_vrhs[0], 
-                    &receive_count[0], &displs[0], MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-    if(rank == 0)
-    {
-        for(int i = 0; i < tmp_vrhs.size(); i+=2)
+        else if(propagation_direction == 1)
         {
-            this->vrhs_internal.push_back(std::complex<double>(tmp_vrhs[i], tmp_vrhs[i + 1]));
+
+        }
+
+        Node e(e_x, e_y, e_z);
+
+        Node k(this->k * std::sin(theta) * std::cos(phi),
+                this->k * std::sin(theta) * std::sin(phi),
+                this->k * cos(theta)); 
+
+        Node e_plus;
+        Node e_minus;
+
+        for(int i = 0; i < sub_edge_values.size(); i++)
+        {
+            m = sub_edge_values[i];
+            int triangle_plus = this->edges[m].getPlusTriangleIndex();
+            int triangle_minus = this->edges[m].getMinusTriangleIndex();
+
+            e_plus = e.getScalarMultiply(std::exp(this->j * k.getDotNoComplex(this->triangles[triangle_plus].getCentre())));
+            e_minus = e.getScalarMultiply(std::exp(this->j * k.getDotNoComplex(this->triangles[triangle_minus].getCentre())));
+            
+
+            tmp_vrhs_value = 0.5 * e_plus.getDot(this->edges[m].getRhoCPlus()) + 
+                             0.5 * e_minus.getDot(this->edges[m].getRhoCMinus());
+            tmp_vrhs_value *= this->edges[m].getLength();
+
+            sub_vrhs.push_back(tmp_vrhs_value.real()); 
+            sub_vrhs.push_back(tmp_vrhs_value.imag()); 
+        }
+
+        std::vector<int> receive_count;
+        std::vector<int> displs;
+        std::vector<double> tmp_vrhs;
+        
+        if(rank == 0)
+        {
+            for(int i = 0; i < size; i++)
+            {
+                receive_count.push_back(this->numValuesMPI(size, i, this->edges.size()) * 2);
+            }
+
+            displs.resize(size);
+            displs[0] = 0;
+            for(int i = 1; i < size; i++)
+            {
+                displs[i] = displs[i - 1] + receive_count[i - 1];
+            }
+            tmp_vrhs.resize(this->edges.size() * 2);
+        }
+
+        MPI_Gatherv(&sub_vrhs[0], sub_vrhs.size(), MPI_DOUBLE, &tmp_vrhs[0], 
+                        &receive_count[0], &displs[0], MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+        if(rank == 0)
+        {
+            for(int i = 0; i < tmp_vrhs.size(); i+=2)
+            {
+                this->vrhs_internal.push_back(std::complex<double>(tmp_vrhs[i], tmp_vrhs[i + 1]));
+            }
         }
     }
-
-
 }
 
 void MoMSolverMPI::calculateZmnByFaceMPI()
@@ -593,7 +595,11 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
     // See http://www.netlib.org/scalapack/slug/node75.html for details 
     // Lets define the block size
     int block_size = 64;
-    
+    if(block_size > this->edges.size())
+    {
+        block_size = this->edges.size() / 4;
+    }
+
     // Lets get the number or local rows and columns
     // Zmn
     int local_rows = numroc_(&matrix_size, &block_size, &my_row, &zero, &proc_rows);
@@ -699,11 +705,13 @@ void MoMSolverMPI::calculateJMatrixSCALAPACK()
 
     // Now the LU decomposition
     int local_pivot[local_rows * block_size];
+    std::cout << "BEFORE pzgetrs_" << std::endl;
     pzgetrf_(&matrix_size, &matrix_size, A_local, &one, &one, desc, local_pivot, &info); 
-
+    std::cout << "After pzgetrs_" << std::endl;
 
     // Lets solve for I
     pzgetrs_("T", &matrix_size, &one, A_local, &one, &one, desc, local_pivot, B_local, &one, &one, v_desc, &info);
+    std::cout << "AFTER pzgetrs_" << std::endl;
 
     // Lets gather the solved vector
     // get from each process in block cyclic manner
