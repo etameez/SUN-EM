@@ -37,7 +37,6 @@ int main(int argc, char *argv[])
 
         std::string path = argv[1];
         MoMFileReader reader(path);
-        std::cout << "After file reader" << std::endl;
     
         MoMSolverMPI solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
     

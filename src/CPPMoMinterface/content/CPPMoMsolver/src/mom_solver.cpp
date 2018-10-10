@@ -437,14 +437,6 @@ std::vector<Node> MoMSolver::calculateAAndPhi(int p, int q)
     // Remember, the vector is ordered in [Ipq Ipq_xi Ipq_eta Ipq_zeta]
     std::vector<std::complex<double>> i_vector = this->calculateIpq(p, q);
 
-    if(p==q && p==0)
-    {
-        std::cout << i_vector[0] << std::endl;
-        std::cout << i_vector[1] << std::endl;
-        std::cout << i_vector[2] << std::endl;
-        std::cout << i_vector[3] << std::endl;
-    }
-
     // There are three values for the magnetic vector potential (Apq) and one for the scalar
     // potential(Phipq)
     // Remember, from calculateIpq, r1 -> vertex_1, r2 -> vertex_2 and r3 -> vertex_3
@@ -523,7 +515,7 @@ std::vector<std::complex<double>> MoMSolver::calculateIpq(int p, int q)
     // This is defined in const_map whether to use the singularity treatment or not
     std::vector<std::complex<double>> i_vector;
 
-    bool sing = false;
+    bool sing = true;
     // Lets start by checking for a singularity(p == q)
     if(p == q && sing) // TODO: change to p == q && SING == True
     {
@@ -918,17 +910,6 @@ std::vector<std::complex<double>> MoMSolver::getIpqSING(int p)
                            xi_k_vector[2]                          *
                            // xi3_ij                          *
                            std::exp(std::complex<double>(-1,0) * this->j * this->k * R_ij);
-                if(i==0 && j==0 && sub_triangle_index == 0 && p==0)
-                {
-                    std::cout << this->quadrature_weights_values_j[j][0] << std::endl;
-                     std::cout <<   this->quadrature_weights_values_i[i][0] << std::endl;
-                      std::cout <<  h1_prime.getNorm()                      << std::endl;
-                     std::cout <<   (u_u - u_l)                             << std::endl;
-                      std::cout <<  std::exp(std::complex<double>(-1,0) * this->j * this->k * R_ij)<< std::endl;
-                      std::cout << std::endl;
-                       std::cout << xi_k_vector[0] + xi_k_vector[1] + xi_k_vector[2]<< std::endl;
-                      std::cout << std::endl;
-                } 
             }
         }
     }

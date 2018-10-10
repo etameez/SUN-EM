@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
         MoMFileReader reader(path); 
         MoMSolver solver(reader.getNodes(), reader.getTriangles(), reader.getEdges(), reader.getVrhs(), reader.getConstMap());
 
-        // solver.calculateZmnByEdge();
+        //solver.calculateZmnByEdge();
         solver.calculateZmnByFace();
         // solver.printZmnToFile("pec_plate.zmn");
         solver.calculateVrhsInternally();

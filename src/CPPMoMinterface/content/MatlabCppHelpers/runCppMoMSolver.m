@@ -94,8 +94,6 @@ function [mom] = runCppMoMsolver(Const, Solver_setup, yVectors, refIsol)
     
         % Lets read the currents from the .sol file
         mom.Isol(:,freq) = readFileFromCpp(Const); 
-        mom.relError = calculateErrorNormPercentage(refIsol.Isol, mom.Isol);
-        message_fc(Const,sprintf('Rel. error norm. for Sol. to reference sol. %f percent', mom.relError));
 
     end
     message_fc(Const,sprintf('Finished MoM solver in %f sec.',mom.totsolTime));
