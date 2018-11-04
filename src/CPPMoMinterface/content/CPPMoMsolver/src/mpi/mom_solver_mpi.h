@@ -69,6 +69,7 @@ class MoMSolverMPI
         double omega;
         double lambda;
         double c;
+        int sing;
 
         std::vector<Node> calculateAAndPhi(int p, int q);
         std::vector<std::complex<double>> calculateIpq(int p, int q);

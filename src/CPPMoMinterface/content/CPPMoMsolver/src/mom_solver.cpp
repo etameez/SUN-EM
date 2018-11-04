@@ -69,6 +69,7 @@ MoMSolver::MoMSolver(std::vector<Node> nodes,
     // So, lets set j as 0 + 1i
     std::complex<double> complex_constant(0, 1);
     this->j = complex_constant;
+    this->sing = std::stoi(this->const_map["SING"]);
 }
 
 void MoMSolver::calculateZmnByFace()
@@ -515,9 +516,8 @@ std::vector<std::complex<double>> MoMSolver::calculateIpq(int p, int q)
     // This is defined in const_map whether to use the singularity treatment or not
     std::vector<std::complex<double>> i_vector;
 
-    bool sing = true;
     // Lets start by checking for a singularity(p == q)
-    if(p == q && sing) // TODO: change to p == q && SING == True
+    if(p == q && this->sing) 
     {
         // Lets do some singularity extraction
         i_vector = this->getIpqSING(p);

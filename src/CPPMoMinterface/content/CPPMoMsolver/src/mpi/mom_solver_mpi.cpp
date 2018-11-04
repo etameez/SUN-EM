@@ -35,6 +35,7 @@ MoMSolverMPI::MoMSolverMPI(std::vector<Node> nodes,
     this->k = 2 * M_PI / this->lambda;
     std::complex<double> complex_constant(0, 1);
     this->j = complex_constant;
+    this->sing = std::stoi(this->const_map["SING"]);
 
     // int size;
     // MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -811,8 +812,8 @@ std::vector<std::complex<double>> MoMSolverMPI::calculateIpq(int p, int q)
 
     std::vector<std::complex<double>> i_vector;
 
-    bool sing = true;
-    if(p == q && sing) // TODO: change to p == q && SING == True
+    
+    if(p == q && this->sing) // TODO: change to p == q && SING == True
     {
         i_vector = this->getIpqSING(p);
     }

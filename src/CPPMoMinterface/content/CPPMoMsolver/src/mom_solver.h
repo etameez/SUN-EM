@@ -54,6 +54,7 @@ class MoMSolver
         double omega;
         double lambda;
         double c;
+        int sing;
 
         int num_points_j;
         int num_points_i;
