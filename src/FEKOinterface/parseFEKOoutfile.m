@@ -194,7 +194,7 @@ function [Const, FEKO_data] = parseFEKOoutfile(Const, yVectors)
             g = strfind(line, 'Indices of the edges:');
             if (g > 0)
                 edge_info = strsplit(line);    
-                Const.feed_edge = str2num(edge_info{6});
+                Const.feed_edge = abs(str2num(edge_info{6}));
             end
         else
             g = strfind(line, 'Direction of incidence:');

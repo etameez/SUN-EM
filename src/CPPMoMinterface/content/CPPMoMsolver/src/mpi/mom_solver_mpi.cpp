@@ -1231,6 +1231,21 @@ std::vector<double> MoMSolverMPI::getMatrixXVector(std::vector<std::array<double
 }
 
 
+void MoMSolverMPI::printPartialZMN()
+{
+    std::cout << this->edges.size() << std::endl;
+    for(int i = 0; i < this->edges.size(); i++)
+    {
+        for(int j = 0; j < this->edges.size(); j++)
+        {
+            if(std::isnan(this->zmn[i + this->edges.size() * j].real()))
+            {
+                std::cout << "NAN " << i << " <=> " << j <<std::endl;
+            }   
+        }
+        
+    }
+}
 
 
 

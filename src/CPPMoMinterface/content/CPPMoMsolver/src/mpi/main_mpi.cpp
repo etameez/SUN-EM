@@ -47,6 +47,7 @@ int main(int argc, char *argv[])
 
         if(rank == 0)
         {
+            // solver.printPartialZMN();
             MoMFileWriter file_writer;
             std::string file_name = path.substr(0 , path.size() - 3) + "sol";
             file_writer.writeIlhsToFile(file_name, solver.getIlhs());

@@ -51,6 +51,7 @@ class MoMSolverMPI
         void calculateJMatrixSCALAPACK();
 
         std::vector<std::complex<double>> getIlhs();
+        void printPartialZMN();
 
     protected:
         std::vector<Node> nodes;
